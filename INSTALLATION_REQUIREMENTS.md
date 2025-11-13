@@ -1,63 +1,60 @@
-# Sentra Installation Requirements
+# Sentra Installation Guide
 
-## Prerequisites
+## Easy Setup (No MongoDB Installation Required!)
 
-To run Sentra on another PC, you need the following installed:
+Sentra uses **MongoDB Atlas** (cloud database), which is already configured and included in the application. You don't need to install MongoDB on your computer.
 
-### 1. MongoDB (Required)
-The Sentra application uses MongoDB as its database.
+### Installation Steps
 
-**Installation Options:**
+1. **Download the Installer**
+   - Go to the [Sentra Releases page](https://github.com/Prathmesh-D/Sentra/releases)
+   - Download the latest `Sentra Setup *.exe` file
 
-#### Option A: MongoDB Community Server (Recommended for Desktop)
-1. Download from: https://www.mongodb.com/try/download/community
-2. Install MongoDB Community Server
-3. During installation, select "Install MongoDB as a Service"
-4. Default connection: `mongodb://localhost:27017`
+2. **Run the Installer**
+   - Double-click the downloaded installer
+   - Follow the installation wizard
+   - Choose your installation directory (or use the default)
 
-#### Option B: MongoDB Atlas (Cloud Database)
-1. Create free account at: https://www.mongodb.com/cloud/atlas
-2. Create a free cluster
-3. Get your connection string
-4. Update the `.env` file with your MongoDB Atlas connection string
+3. **Launch Sentra**
+   - The application will start and connect to the cloud database automatically
+   - No additional configuration needed!
 
-### 2. Environment Variables
-Create a `.env` file in the application directory with:
+## What's Included
 
-```env
-MONGO_URI=mongodb://localhost:27017/sentra_encryption
-MONGO_DB_NAME=sentra_encryption
-SECRET_KEY=your-secret-key-here
-JWT_SECRET_KEY=your-jwt-secret-key-here
-```
-
-## Quick Start
-
-1. Install MongoDB (see above)
-2. Ensure MongoDB service is running
-3. Run the Sentra installer
-4. Launch Sentra application
+✅ MongoDB Atlas connection (cloud database - no local installation needed)  
+✅ Backend server (bundled as executable)  
+✅ All encryption and security features  
+✅ Automatic updates  
 
 ## Troubleshooting
 
 ### Network Error on Startup
-**Cause:** MongoDB is not running or not accessible
+
+**Possible Causes:**
+1. **No internet connection** - Sentra needs internet to connect to MongoDB Atlas
+2. **Firewall blocking** - Your firewall might be blocking the connection
+
+**Solutions:**
+- Check your internet connection
+- Temporarily disable firewall to test
+- Add Sentra to your firewall's allowed applications
+
+### Application Won't Start
 
 **Solution:**
-- Windows: Open Services and start "MongoDB Server"
-- Verify MongoDB is running: Open browser to http://localhost:27017
-  - You should see: "It looks like you are trying to access MongoDB over HTTP..."
+- Make sure you have Windows 10/11 (64-bit)
+- Install [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe) if missing
 
-### Connection Timeout
-**Cause:** MongoDB URI is incorrect in `.env` file
+## System Requirements
 
-**Solution:**
-- Check `.env` file exists in app directory
-- Verify MONGO_URI points to running MongoDB instance
+- **OS:** Windows 10/11 (64-bit)
+- **RAM:** 4 GB minimum, 8 GB recommended
+- **Disk Space:** 500 MB free space
+- **Internet:** Required for database connection
 
 ## For Developers
 
-To create a portable version that doesn't require MongoDB:
-1. Replace MongoDB with SQLite
-2. Update all database queries in `backend/app/services/database.py`
-3. Modify routes to use SQLite instead of pymongo
+If you're running the development version:
+- MongoDB Atlas credentials are in `backend/.env`
+- The connection string is already configured
+- No local MongoDB installation needed
