@@ -1,0 +1,492 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: rgb(var(--background));
+  --color-foreground: rgb(var(--foreground));
+  --color-card: rgb(var(--card));
+  --color-card-foreground: rgb(var(--card-foreground));
+  --color-popover: rgb(var(--popover));
+  --color-popover-foreground: rgb(var(--popover-foreground));
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+  --color-secondary: rgb(var(--secondary));
+  --color-secondary-foreground: rgb(var(--secondary-foreground));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-accent: rgb(var(--accent));
+  --color-accent-foreground: rgb(var(--accent-foreground));
+  --color-destructive: rgb(var(--destructive));
+  --color-border: rgb(var(--border));
+  --color-input: rgb(var(--input));
+  --color-ring: rgb(var(--ring));
+  --color-chart-1: rgb(var(--chart-1));
+  --color-chart-2: rgb(var(--chart-2));
+  --color-chart-3: rgb(var(--chart-3));
+  --color-chart-4: rgb(var(--chart-4));
+  --color-chart-5: rgb(var(--chart-5));
+  --color-sidebar: rgb(var(--sidebar));
+  --color-sidebar-foreground: rgb(var(--sidebar-foreground));
+  --color-sidebar-primary: rgb(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: rgb(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: rgb(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: rgb(var(--sidebar-accent-foreground));
+  --color-sidebar-border: rgb(var(--sidebar-border));
+  --color-sidebar-ring: rgb(var(--sidebar-ring));
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: 239 247 246; /* Mint cream */
+  --foreground: 8 77 69; /* Celeste 100 - dark text */
+  --card: 255 255 255;
+  --card-foreground: 8 77 69;
+  --popover: 255 255 255;
+  --popover-foreground: 8 77 69;
+  --primary: 178 247 239; /* Celeste - main accent */
+  --primary-foreground: 8 77 69; /* Dark text on celeste */
+  --secondary: 242 181 212; /* Lavender pink */
+  --secondary-foreground: 72 13 42;
+  --muted: 239 247 246; /* Mint cream */
+  --muted-foreground: 32 64 61;
+  --accent: 247 214 224; /* Mimi Pink - for highlights */
+  --accent-foreground: 77 15 34;
+  --destructive: 247 214 224; /* Mimi Pink */
+  --border: 194 245 255; /* Non Photo Blue 700 - subtle */
+  --input: 178 247 239; /* Celeste */
+  --ring: 151 238 255; /* Non Photo Blue - focus ring */
+  --chart-1: 151 238 255; /* Non Photo Blue */
+  --chart-2: 178 247 239; /* Celeste */
+  --chart-3: 242 181 212; /* Lavender pink */
+  --chart-4: 247 214 224; /* Mimi Pink */
+  --chart-5: 239 247 246; /* Mint cream */
+  --sidebar: 151 238 255; /* Non Photo Blue */
+  --sidebar-foreground: 0 68 82; /* Dark text for contrast */
+  --sidebar-primary: 0 68 82; /* Dark for logo background */
+  --sidebar-primary-foreground: 239 247 246; /* Light text */
+  --sidebar-accent: 173 241 255; /* Non Photo Blue 600 - lighter */
+  --sidebar-accent-foreground: 0 68 82;
+  --sidebar-border: 194 245 255; /* Non Photo Blue 700 */
+  --sidebar-ring: 151 238 255;
+}
+
+.dark {
+  --background: 8 77 69; /* Celeste 100 - dark background */
+  --foreground: 239 247 246; /* Mint cream */
+  --card: 16 153 137; /* Celeste 200 */
+  --card-foreground: 239 247 246;
+  --popover: 16 153 137;
+  --popover-foreground: 239 247 246;
+  --primary: 151 238 255; /* Non Photo Blue */
+  --primary-foreground: 0 68 82;
+  --secondary: 178 247 239; /* Celeste */
+  --secondary-foreground: 8 77 69;
+  --muted: 32 64 61; /* Mint cream 100 */
+  --muted-foreground: 178 247 239;
+  --accent: 242 181 212; /* Lavender pink */
+  --accent-foreground: 239 247 246;
+  --destructive: 247 214 224; /* Mimi Pink */
+  --border: 24 230 206; /* Celeste 300 */
+  --input: 24 230 206;
+  --ring: 151 238 255;
+  --chart-1: 151 238 255;
+  --chart-2: 178 247 239;
+  --chart-3: 242 181 212;
+
+  /* Animation timing functions */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --chart-4: 247 214 224;
+  --chart-5: 239 247 246;
+  --sidebar: 151 238 255; /* Non Photo Blue */
+  --sidebar-foreground: 0 68 82; /* Dark text */
+  --sidebar-primary: 0 68 82; /* Dark for logo */
+  --sidebar-primary-foreground: 239 247 246;
+  --sidebar-accent: 173 241 255; /* Lighter blue for hover */
+  --sidebar-accent-foreground: 0 68 82;
+  --sidebar-border: 24 230 206;
+  --sidebar-ring: 151 238 255;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html, body {
+    @apply bg-background text-foreground;
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    position: fixed;
+  }
+  #root {
+    font-family: 'Poppins', sans-serif;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+  }
+  /* Allow content area to scroll */
+  [data-sidebar="inset"] {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Sidebar Custom Fonts */
+@layer components {
+  /* Apply custom font to entire sidebar */
+  [data-sidebar] {
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    font-size: 1rem;
+  }
+
+  /* Sidebar header styling */
+  [data-sidebar] [data-sidebar="header"] {
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 600;
+    font-size: 1.125rem;
+  }
+
+  /* Project items styling */
+  [data-sidebar] [data-sidebar="menu-button"] {
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 700 !important;
+    font-style: normal;
+    font-size: 1.125rem !important;
+  }
+
+  /* Group labels (like "Navigation") */
+  [data-sidebar] [data-sidebar="group-label"] {
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.875rem;
+  }
+
+  /* Floating animation for user card */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  /* Button Click Animation - Scale & Ripple Effect */
+  .btn-click-animation {
+    position: relative;
+    overflow: hidden;
+    transform-origin: center;
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-click-animation:active {
+    transform: scale(0.95);
+    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-click-animation:hover:not(:active) {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(178, 247, 239, 0.3);
+  }
+
+  /* Ripple effect for button clicks */
+  @keyframes ripple {
+    0% {
+      transform: scale(0);
+      opacity: 0.6;
+    }
+    100% {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+    animation: ripple 0.6s ease-out;
+  }
+
+  /* Card Hover Animation - Lift & Glow */
+  .card-hover-animation {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-hover-animation:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(151, 238, 255, 0.2);
+  }
+
+  /* Input Focus Animation */
+  .input-focus-animation {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+
+  .input-focus-animation:focus {
+    transform: scale(1.01);
+    box-shadow: 0 0 0 3px rgba(151, 238, 255, 0.2);
+  }
+
+  /* Icon Spin on Hover */
+  .icon-spin-hover {
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  .icon-spin-hover:hover {
+    transform: rotate(360deg);
+  }
+
+  /* Icon Bounce on Hover */
+  .icon-bounce-hover {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .icon-bounce-hover:hover {
+    transform: translateY(-3px) scale(1.1);
+  }
+
+  /* Smooth Scale on Hover */
+  .scale-hover {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .scale-hover:hover {
+    transform: scale(1.05);
+  }
+
+  /* Pulse Animation for Notifications */
+  @keyframes pulse-soft {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.03);
+    }
+  }
+
+  .pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+
+  /* Shimmer Effect for Loading States */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(178, 247, 239, 0.1) 0%,
+      rgba(151, 238, 255, 0.3) 50%,
+      rgba(178, 247, 239, 0.1) 100%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Slide In from Bottom */
+  @keyframes slideInBottom {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .slide-in-bottom {
+    animation: slideInBottom 0.4s var(--ease-smooth);
+  }
+
+  /* Fade & Scale In */
+  @keyframes fadeScaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .fade-scale-in {
+    animation: fadeScaleIn 0.3s var(--ease-smooth);
+  }
+
+  /* Smooth Opacity Transitions */
+  .transition-smooth {
+    transition: all 0.3s var(--ease-smooth);
+  }
+
+  /* Badge Wiggle Animation */
+  @keyframes wiggle {
+    0%, 100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(-5deg);
+    }
+    75% {
+      transform: rotate(5deg);
+    }
+  }
+
+  .wiggle {
+    animation: wiggle 0.5s ease-in-out;
+  }
+
+  /* Glow on Hover */
+  .glow-hover {
+    transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glow-hover:hover {
+    box-shadow: 0 0 20px rgba(151, 238, 255, 0.5), 0 0 40px rgba(178, 247, 239, 0.3);
+  }
+
+  /* Smooth Background Transitions */
+  .bg-transition {
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Stagger Animation for Lists */
+  .stagger-item {
+    animation: fadeScaleIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+  }
+
+  .stagger-item:nth-child(1) { animation-delay: 0.05s; }
+  .stagger-item:nth-child(2) { animation-delay: 0.1s; }
+  .stagger-item:nth-child(3) { animation-delay: 0.15s; }
+  .stagger-item:nth-child(4) { animation-delay: 0.2s; }
+  .stagger-item:nth-child(5) { animation-delay: 0.25s; }
+  .stagger-item:nth-child(6) { animation-delay: 0.3s; }
+
+  /* Progress Bar Fill Animation */
+  @keyframes fillProgress {
+    from {
+      width: 0%;
+    }
+  }
+
+  .progress-fill-animate {
+    animation: fillProgress 1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Tab Transition Animations - Fast & Smooth */
+  @keyframes tabFadeIn {
+    0% {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes tabFadeOut {
+    0% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(-40px);
+    }
+  }
+
+  /* Smooth tab content transition */
+  .tab-transition {
+    animation: tabFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation-fill-mode: both;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .tab-transition {
+      animation: tabFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tab-transition {
+      animation: none;
+      transition: opacity 0.1s;
+    }
+  }
+
+  /* Tab Button Active State Animation */
+  .tab-button-active {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .tab-button-active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 60%;
+    background: linear-gradient(to bottom, #b2f7ef, #97eeff);
+    border-radius: 0 4px 4px 0;
+    animation: slideInLeft 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes slideInLeft {
+    0% {
+      width: 0;
+      opacity: 0;
+    }
+    100% {
+      width: 4px;
+      opacity: 1;
+    }
+  }
+}
+

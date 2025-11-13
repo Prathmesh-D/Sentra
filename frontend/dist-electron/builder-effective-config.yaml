@@ -1,0 +1,24 @@
+directories:
+  output: dist-electron
+  buildResources: build
+appId: com.minorui.crypto
+productName: MinorUI Crypto
+files:
+  - filter:
+      - dist/**/*
+      - dist-electron/**/*
+mac:
+  category: public.app-category.productivity
+  target: dmg
+win:
+  target: nsis
+  icon: build/icon.ico
+linux:
+  target: AppImage
+  category: Office
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+electronVersion: 30.5.1

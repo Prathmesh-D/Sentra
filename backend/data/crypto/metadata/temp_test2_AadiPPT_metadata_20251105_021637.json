@@ -1,0 +1,28 @@
+{
+  "encrypted_file": "temp_test2_AadiPPT_encrypted_20251105_021637.enc",
+  "iv": "1d69ac489fb2dcb6ba164d1a",
+  "tag": "b4458357416b91e9071054f51e5fe4c4",
+  "encrypted_aes_key": "34da1a12386883d6963ab59d7dff2cdcf825a9882dcb2024df9caa48bc56e10988a781ab0fbcd336a6e5409e7986219b0f563d78de54853e4c66518001eb7e27fcb770841cceeac35c60dc6750eec64df451fd52f331c7c0233556d42dfabeafc531b111846c03c93e837cf58b1e46f0ff8dbe5b4f693ce91367acb8d6da9bd05011c1532baafd14651c07ed0feec8c2dfeeae2f9bf4897ac89986ddc3b50fbbfef3d2674a4de210c2a2bafb5ec4b2eec2063948bb01bf0fc7630ea365bc37a9e1df86e820557858a50b9f1825fdc7d0ef2c1c082283745ec22835c55a93833a5aff08834e83d815f8571fb993be4931e3be8d8b9efa8ea75deea28c839122d5",
+  "aes_key_size": 256,
+  "original_file": {
+    "name": "temp_test2_AadiPPT.pdf",
+    "extension": ".pdf",
+    "size_bytes": 203717,
+    "size_mb": 0.194,
+    "mime_type": "application/pdf",
+    "encoding": null,
+    "sha256_hash": "8c5aefd73817d66caefa1be14878df208aa544ad79dd0f7972dde6c0425f0406"
+  },
+  "encryption_info": {
+    "algorithm": "AES-GCM + RSA-OAEP",
+    "aes_mode": "GCM",
+    "rsa_padding": "OAEP",
+    "timestamp": "20251105_021637",
+    "created_at": "2025-11-05T02:16:37.365445"
+  },
+  "communication": {
+    "sender": "test2",
+    "receiver": "m@exe.com"
+  },
+  "metadata_version": "1.0"
+}

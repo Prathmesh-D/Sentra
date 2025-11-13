@@ -1,0 +1,140 @@
+[Title Placeholder]
+[Your Name Here]
+[Your Roll Number Here]
+[Your Department Here]
+[Mentor Name Placeholder]
+
+1. Software Requirements Specification (SRS)
+
+Problem Statement
+Unauthorized access and accidental exposure of sensitive files in cloud and collaborative environments present significant security and privacy risks. Existing solutions lack robust encryption, intelligent sensitivity analysis, and seamless user experience for secure file sharing.
+
+Purpose of the System
+The system provides secure file sharing and storage using hybrid cryptography (AES, RSA) and AI-powered sensitivity analysis, enabling users to classify, encrypt, and share files with confidence and compliance.
+
+Scope
+The system supports multi-user file management, secure uploads/downloads, sensitivity scoring, permissioned sharing, audit logging, and desktop/web access. It integrates with cloud storage and provides a professional, accessible UI.
+
+Functional Requirements
+- User registration, authentication, and session management
+- File upload, download, and deletion
+- Hybrid encryption (AES-256-GCM for files, RSA-2048-OAEP for key exchange)
+- AI sensitivity analysis and auto-tagging
+- File sharing with permissions and expiry/self-destruct options
+- Audit logging and activity tracking
+- Dashboard and file management views
+- Error handling and notifications
+
+Non-Functional Requirements
+- High performance for large file operations
+- Strong security: encryption, password hashing, JWT authentication
+- Scalability for multiple users and concurrent sessions
+- Responsive, accessible, and intuitive UI
+- Maintainable modular codebase (backend, frontend, crypto engine)
+- Reliable cloud integration (MongoDB Atlas, GridFS)
+
+User Characteristics and Roles
+- End-users: upload, encrypt, analyze, share, and manage files
+- Administrators: manage users, monitor activity, configure system
+
+System Models / Architecture Overview
+Figure 1: High-Level System Architecture
+- Frontend (React/Electron) <-> Backend API (Flask/Python) <-> Database (MongoDB Atlas/GridFS)
+- Crypto Engine (AES/RSA) and AI Engine (Sensitivity Analysis) as backend modules
+
+Data Flow
+1. User uploads file via UI
+2. Backend receives file, runs AI sensitivity analysis
+3. File encrypted with AES; key wrapped with RSA
+4. Encrypted file and metadata stored in GridFS/MongoDB
+5. User shares/downloads file; permissions and expiry enforced
+6. Audit logs updated for each action
+
+Constraints and Assumptions
+- Internet connectivity required for cloud operations
+- Files must comply with size and format limits
+- System assumes user credentials are valid and secure
+
+Future Enhancements
+- Support for additional file types and larger files
+- Advanced AI models for sensitivity analysis
+- Integration with third-party cloud services
+- Mobile app interface
+
+2. Product Requirements Document (PRD)
+
+Product Vision and Goal
+Deliver a secure, intelligent, and user-friendly file sharing platform that protects sensitive information and streamlines collaboration.
+
+Key Features
+- Secure file upload/download with hybrid encryption
+- Real-time sensitivity analysis and feedback
+- Multi-user sharing with permissions, expiry, and self-destruct
+- Dashboard with activity stats and audit logs
+- Desktop and web access via Electron and React
+
+User Stories / Use Cases
+- As a user, I can upload a file, receive sensitivity feedback, and encrypt it before sharing
+- As a user, I can share files with specific recipients and set expiry/self-destruct
+- As an admin, I can view audit logs and manage users
+
+System Architecture
+Backend (Flask/Python) exposes RESTful APIs for authentication, file management, encryption, and analysis. Frontend (React/Electron) consumes APIs for UI interactions. Database (MongoDB Atlas/GridFS) stores encrypted files and metadata. Crypto and AI engines are modular backend services.
+
+API Overview or Service Contracts
+- /api/auth: login, register, JWT token
+- /api/files: upload, download, delete, share
+- /api/analyze: sensitivity analysis
+- /api/activity: audit logs
+
+Security and Encryption Workflow
+Files are encrypted using AES-256-GCM; keys are wrapped with RSA-2048-OAEP. Passwords are hashed with bcrypt. JWT secures sessions. AI engine classifies files and recommends encryption levels. Permissions and expiry/self-destruct features enforce access control.
+
+Storage and Database Design
+MongoDB Atlas stores user data and metadata. GridFS manages large encrypted files. Metadata includes sensitivity scores, permissions, expiry, and audit logs.
+
+Deployment Setup
+Dockerfile and docker-compose.yml automate backend deployment. Vite builds frontend assets. Electron packages desktop app. Environment variables configure cloud and security settings.
+
+Limitations and Assumptions
+- System requires cloud database access
+- File size and type restrictions apply
+- AI analysis is based on current model capabilities
+
+3. Supporting Documentation
+
+Technology Stack Summary
+- Python (Flask, cryptography, bcrypt, PyMongo)
+- JavaScript/TypeScript (React, Electron, Vite, react-hot-toast, react-icons)
+- MongoDB Atlas, GridFS
+- Docker, docker-compose
+- ESLint, tsconfig, pytest
+
+Project Architecture Diagram
+Figure 1: High-Level System Architecture
+- User (Web/Desktop) <-> React/Electron <-> Flask API <-> MongoDB Atlas/GridFS
+- Crypto Engine and AI Engine as backend modules
+
+Folder and Module Overview
+- backend/: Flask API, routes, services, config, core crypto, AI engine
+- backend/app/: modular routes (auth, encryption, files, users)
+- backend/crypto/: AES, RSA, file helpers
+- frontend/: React/Electron UI, components, assets, config
+- hybrid-crypto-file-encryption/: standalone crypto engine, demos, tests
+- data/: encrypted/decrypted files, metadata, temp storage
+
+Configuration and Environment Setup Overview
+- Environment variables for DB, JWT, encryption keys
+- requirements.txt for Python dependencies
+- package.json for frontend dependencies
+- Dockerfile/docker-compose.yml for backend deployment
+- Vite config for frontend build
+
+File Encryption Workflow
+1. User uploads file
+2. Backend runs AI sensitivity analysis
+3. File encrypted with AES-256-GCM
+4. AES key wrapped with RSA-2048-OAEP
+5. Encrypted file and metadata stored in GridFS/MongoDB
+6. User shares/downloads file; permissions and expiry enforced
+7. Audit logs updated

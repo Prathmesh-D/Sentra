@@ -1,0 +1,28 @@
+{
+  "encrypted_file": "test_message_encrypted_20251105_003008.enc",
+  "iv": "f9e61f92578c2a524c9fe370",
+  "tag": "9bc6acfacf688ec9273803bacb03be41",
+  "encrypted_aes_key": "2dc3cbce761a2a5522c775c386b8399744a080153aa32ddcd9d66a5b7ade7fef68e4fe36896f0902bc5a769db3a04d948ccf78b82bd817bc3988f856611df1cc2f0b2774008396c55e7c544876010a8f60a1505e3a298a82041838135b34d77b42d4184ce55479b6cbcce8fe8776b6e3d1e543a796ae64c1e111638bcfb9a9fc81ec2ef41d36552cb2d8d4053596b32d661d8526d02682320eee72c0e4b7f9486f9e5cb20f44df78f025d4a182b4f8e1bcd3825124279dc813acfff7f674c303925675f9a34a611851800c9d55a2da8de27db3e51076102cfb2354431bac17956c68e9e0f797696e306088ab1141e01dea4d1b1c4e9a84221e942e6873c0e74e",
+  "aes_key_size": 256,
+  "original_file": {
+    "name": "test_message.txt",
+    "extension": ".txt",
+    "size_bytes": 42,
+    "size_mb": 0.0,
+    "mime_type": "text/plain",
+    "encoding": null,
+    "sha256_hash": "72844fd353025e6f8c451466748f9384aee49a7abee1efc5f7bd0291baeccf32"
+  },
+  "encryption_info": {
+    "algorithm": "AES-GCM + RSA-OAEP",
+    "aes_mode": "GCM",
+    "rsa_padding": "OAEP",
+    "timestamp": "20251105_003008",
+    "created_at": "2025-11-05T00:30:08.104604"
+  },
+  "communication": {
+    "sender": "test_user",
+    "receiver": "recipient1,recipient2"
+  },
+  "metadata_version": "1.0"
+}

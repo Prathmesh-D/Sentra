@@ -1,0 +1,25 @@
+{
+  "name": "sentra-root",
+  "version": "1.0.0",
+  "description": "Root package for Sentra Hybrid Crypto File Encryption",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "lint": "cd frontend && npm run lint",
+    "electron": "cd frontend && npm run electron",
+    "electron-dev": "cd frontend && npm run electron-dev",
+    "build-electron": "cd frontend && npm run build-electron",
+    "build-electron-win": "cd frontend && npm run build-electron-win",
+    "build-electron-mac": "cd frontend && npm run build-electron-mac",
+    "build-electron-linux": "cd frontend && npm run build-electron-linux",
+    "backend": "cd backend && python run.py",
+    "backend-venv": "cd backend && .\\venv\\Scripts\\Activate.ps1 && python run.py"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.16",
+    "tailwindcss": "^4.1.16"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2"
+  }
+}
