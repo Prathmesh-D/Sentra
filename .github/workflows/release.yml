@@ -69,7 +69,6 @@ jobs:
         echo '    binaries=[],' >> backend.spec
         echo '    datas=[' >> backend.spec
         echo '        # Include config files' >> backend.spec
-        echo '        (".env", "."),' >> backend.spec
         echo '        ("app", "app"),' >> backend.spec
         echo '        (str(parent_dir / "crypto"), "crypto"),' >> backend.spec
         echo '    ],' >> backend.spec
