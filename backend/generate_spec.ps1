@@ -17,6 +17,7 @@ a = Analysis(
         # Include config files
         ("app", "app"),
         (str(parent_dir / "crypto"), "crypto"),
+        (".env", "."),
     ],
     hiddenimports=[
         "flask", "flask_cors", "werkzeug", "jinja2",

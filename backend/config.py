@@ -3,11 +3,26 @@ Configuration Management for Flask Backend
 Loads environment variables and provides configuration classes
 """
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Determine if running as a bundled executable
+if getattr(sys, 'frozen', False):
+    # Running as compiled executable
+    application_path = Path(sys._MEIPASS)
+    env_path = application_path / '.env'
+else:
+    # Running as a script
+    application_path = Path(__file__).parent
+    env_path = application_path / '.env'
+
 # Load environment variables
-load_dotenv()
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    print(f"Warning: .env file not found at {env_path}")
+    load_dotenv()  # Try to load from current directory anyway
 
 class Config:
     """Base configuration"""
