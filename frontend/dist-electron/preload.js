@@ -1,23 +1,23 @@
-import { contextBridge, ipcRenderer } from "electron";
-contextBridge.exposeInMainWorld("electronAPI", {
+import { contextBridge as n, ipcRenderer as e } from "electron";
+n.exposeInMainWorld("electronAPI", {
   // File dialog operations
-  openFile: () => ipcRenderer.invoke("dialog:openFile"),
-  saveFile: (options) => ipcRenderer.invoke("dialog:saveFile", options),
-  openDirectory: () => ipcRenderer.invoke("dialog:openDirectory"),
+  openFile: () => e.invoke("dialog:openFile"),
+  saveFile: (o) => e.invoke("dialog:saveFile", o),
+  openDirectory: () => e.invoke("dialog:openDirectory"),
   // App information
-  getVersion: () => ipcRenderer.invoke("app:getVersion"),
-  getPlatform: () => ipcRenderer.invoke("app:getPlatform"),
+  getVersion: () => e.invoke("app:getVersion"),
+  getPlatform: () => e.invoke("app:getPlatform"),
   // Window controls
-  minimizeWindow: () => ipcRenderer.send("window:minimize"),
-  maximizeWindow: () => ipcRenderer.send("window:maximize"),
-  closeWindow: () => ipcRenderer.send("window:close"),
+  minimizeWindow: () => e.send("window:minimize"),
+  maximizeWindow: () => e.send("window:maximize"),
+  closeWindow: () => e.send("window:close"),
   // Listen for app events
-  onUpdateAvailable: (callback) => ipcRenderer.on("update-available", callback),
-  onUpdateDownloaded: (callback) => ipcRenderer.on("update-downloaded", callback),
+  onUpdateAvailable: (o) => e.on("update-available", o),
+  onUpdateDownloaded: (o) => e.on("update-downloaded", o),
   // Remove listeners
-  removeAllListeners: (event) => ipcRenderer.removeAllListeners(event)
+  removeAllListeners: (o) => e.removeAllListeners(o)
 });
-contextBridge.exposeInMainWorld("nodeAPI", {
+n.exposeInMainWorld("nodeAPI", {
   platform: process.platform,
   versions: {
     node: process.versions.node,
