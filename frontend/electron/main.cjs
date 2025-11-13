@@ -27,21 +27,36 @@ function sendProgressUpdate(phase, progress, message) {
 }
 
 function startBackendServer() {
-  const backendPath = path.join(__dirname, '../../backend');
-  const venvPath = path.join(backendPath, 'venv', 'Scripts', 'python.exe');
-  const runScript = path.join(backendPath, 'run.py');
+  const isDev = process.env.NODE_ENV === 'development';
+  
+  if (isDev) {
+    // Development: Use Python with venv
+    const backendPath = path.join(__dirname, '../../backend');
+    const venvPath = path.join(backendPath, 'venv', 'Scripts', 'python.exe');
+    const runScript = path.join(backendPath, 'run.py');
 
-  console.log('Starting backend server...');
-  console.log('Backend path:', backendPath);
-  console.log('Python executable:', venvPath);
-  console.log('Run script:', runScript);
+    console.log('Starting backend server in DEV mode...');
+    console.log('Backend path:', backendPath);
+    console.log('Python executable:', venvPath);
+    console.log('Run script:', runScript);
 
-  // Start the Python backend server immediately
-  backendProcess = spawn(venvPath, [runScript], {
-    cwd: backendPath,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    shell: true
-  });
+    backendProcess = spawn(venvPath, [runScript], {
+      cwd: backendPath,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: true
+    });
+  } else {
+    // Production: Use bundled executable
+    const backendExePath = path.join(process.resourcesPath, 'resources', 'sentra-backend.exe');
+    
+    console.log('Starting backend server in PRODUCTION mode...');
+    console.log('Backend executable:', backendExePath);
+
+    backendProcess = spawn(backendExePath, [], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: false
+    });
+  }
 
   // Progress phases with faster, broader timing
   const progressPhases = [
