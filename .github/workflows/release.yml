@@ -7,78 +7,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  release:
+  build:
     runs-on: windows-latest
-    permissions:
-      contents: write
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
-
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-
-    - name: Install frontend dependencies
-      run: |
-        cd frontend
-        Get-ChildItem
-        Get-Content package.json -TotalCount 20
-        npm ci
-      env:
-        CI: true
-
-    - name: Install backend dependencies
-      run: |
-        cd backend
-        Get-ChildItem
-        Get-Content requirements.txt -TotalCount 10
-        python -m venv venv
-        .\venv\Scripts\activate
-        python -m pip install --upgrade pip
-        pip install wheel setuptools
-        pip install -r requirements.txt
-        pip install pyinstaller
-        pip install wheel
-
-    - name: Build backend executable
-      run: |
-        cd backend
-        .\venv\Scripts\activate
-        
-        # Generate PyInstaller spec file
-        powershell -ExecutionPolicy Bypass -File generate_spec.ps1
-        
-        pyinstaller --clean backend.spec
-
-    - name: Copy backend to frontend
-      run: |
-        mkdir frontend\resources -Force
-        copy backend\dist\sentra-backend.exe frontend\resources\
-
-    - name: Build and publish Electron app
-      run: |
-        cd frontend
-        npm run build-electron-win
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          frontend/dist-electron/Sentra Setup *.exe
-          frontend/dist-electron/Sentra-Portable-*.exe
-          frontend/dist-electron/latest.yml
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Print Hello
+        run: echo "Release workflow triggered!"
