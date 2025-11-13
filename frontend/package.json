@@ -1,7 +1,7 @@
 {
   "name": "sentra",
   "private": true,
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "Hybrid Crypto File Encryption Desktop App",
   "repository": "https://github.com/Prathmesh-D/Sentra",
   "main": "dist-electron/main.js",
