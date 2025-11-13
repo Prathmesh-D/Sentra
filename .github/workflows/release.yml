@@ -53,69 +53,67 @@ jobs:
         .\venv\Scripts\activate
         
         # Create PyInstaller spec file
-        @"
-# -*- mode: python ; coding: utf-8 -*-
-
-import os
-from pathlib import Path
-
-# Get the current directory (backend folder)
-current_dir = Path.cwd()
-# Get the parent directory (reactui folder)
-parent_dir = current_dir.parent
-
-a = Analysis(
-    ['run.py'],
-    pathex=[str(current_dir), str(parent_dir)],
-    binaries=[],
-    datas=[
-        # Include config files
-        ('.env', '.'),
-        ('app', 'app'),
-        (str(parent_dir / 'crypto'), 'crypto'),
-    ],
-    hiddenimports=[
-        'flask', 'flask_cors', 'werkzeug', 'jinja2',
-        'pymongo', 'cryptography', 'cryptography.hazmat',
-        'cryptography.hazmat.primitives', 'boto3', 'python-dotenv',
-        'requests', 'werkzeug.security', 'datetime', 'pathlib',
-        'os', 'sys', 'json', 'uuid', 'hashlib', 'base64', 'secrets',
-    ],
-    hookspath=[],
-    hooksconfig={},
-    runtime_hooks=[],
-    excludes=[],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=None,
-    noarchive=False,
-)
-
-pyz = PYZ(a.pure, a.zipped_data, cipher=None)
-
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
-    name='sentra-backend',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=True,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    icon=None,
-)
-"@ | Out-File -FilePath "backend.spec" -Encoding UTF8
+        echo '# -*- mode: python ; coding: utf-8 -*-' > backend.spec
+        echo '' >> backend.spec
+        echo 'import os' >> backend.spec
+        echo 'from pathlib import Path' >> backend.spec
+        echo '' >> backend.spec
+        echo '# Get the current directory (backend folder)' >> backend.spec
+        echo 'current_dir = Path.cwd()' >> backend.spec
+        echo '# Get the parent directory (reactui folder)' >> backend.spec
+        echo 'parent_dir = current_dir.parent' >> backend.spec
+        echo '' >> backend.spec
+        echo 'a = Analysis(' >> backend.spec
+        echo '    ['run.py'],' >> backend.spec
+        echo '    pathex=[str(current_dir), str(parent_dir)],' >> backend.spec
+        echo '    binaries=[],' >> backend.spec
+        echo '    datas=[' >> backend.spec
+        echo '        # Include config files' >> backend.spec
+        echo "        ('.env', '.')," >> backend.spec
+        echo "        ('app', 'app')," >> backend.spec
+        echo "        (str(parent_dir / 'crypto'), 'crypto')," >> backend.spec
+        echo '    ],' >> backend.spec
+        echo '    hiddenimports=[' >> backend.spec
+        echo "        'flask', 'flask_cors', 'werkzeug', 'jinja2'," >> backend.spec
+        echo "        'pymongo', 'cryptography', 'cryptography.hazmat'," >> backend.spec
+        echo "        'cryptography.hazmat.primitives', 'boto3', 'python-dotenv'," >> backend.spec
+        echo "        'requests', 'werkzeug.security', 'datetime', 'pathlib'," >> backend.spec
+        echo "        'os', 'sys', 'json', 'uuid', 'hashlib', 'base64', 'secrets'," >> backend.spec
+        echo '    ],' >> backend.spec
+        echo '    hookspath=[],' >> backend.spec
+        echo '    hooksconfig={},' >> backend.spec
+        echo '    runtime_hooks=[],' >> backend.spec
+        echo '    excludes=[],' >> backend.spec
+        echo '    win_no_prefer_redirects=False,' >> backend.spec
+        echo '    win_private_assemblies=False,' >> backend.spec
+        echo '    cipher=None,' >> backend.spec
+        echo '    noarchive=False,' >> backend.spec
+        echo ')' >> backend.spec
+        echo '' >> backend.spec
+        echo 'pyz = PYZ(a.pure, a.zipped_data, cipher=None)' >> backend.spec
+        echo '' >> backend.spec
+        echo 'exe = EXE(' >> backend.spec
+        echo '    pyz,' >> backend.spec
+        echo '    a.scripts,' >> backend.spec
+        echo '    a.binaries,' >> backend.spec
+        echo '    a.zipfiles,' >> backend.spec
+        echo '    a.datas,' >> backend.spec
+        echo '    [],' >> backend.spec
+        echo "    name='sentra-backend'," >> backend.spec
+        echo '    debug=False,' >> backend.spec
+        echo '    bootloader_ignore_signals=False,' >> backend.spec
+        echo '    strip=False,' >> backend.spec
+        echo '    upx=True,' >> backend.spec
+        echo '    upx_exclude=[],' >> backend.spec
+        echo '    runtime_tmpdir=None,' >> backend.spec
+        echo '    console=True,' >> backend.spec
+        echo '    disable_windowed_traceback=False,' >> backend.spec
+        echo '    argv_emulation=False,' >> backend.spec
+        echo '    target_arch=None,' >> backend.spec
+        echo '    codesign_identity=None,' >> backend.spec
+        echo '    entitlements_file=None,' >> backend.spec
+        echo '    icon=None,' >> backend.spec
+        echo ')' >> backend.spec
         
         pyinstaller --clean backend.spec
 
