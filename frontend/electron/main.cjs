@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
@@ -7,6 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development';
+
+// Configure auto-updater
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
 
 // Keep a global reference of the window object and backend process
 let mainWindow;
@@ -168,6 +173,69 @@ function createWindow() {
   });
 }
 
+// Auto-updater event handlers
+function checkForUpdates() {
+  console.log('[UPDATE] Checking for updates...');
+  autoUpdater.checkForUpdates();
+}
+
+autoUpdater.on('checking-for-update', () => {
+  console.log('[UPDATE] Checking for updates...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  console.log('[UPDATE] Update available:', info.version);
+  
+  dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    title: 'Update Available',
+    message: `A new version ${info.version} is available. Would you like to download it now?`,
+    buttons: ['Download', 'Later'],
+    defaultId: 0,
+    cancelId: 1
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.downloadUpdate();
+    }
+  });
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  console.log('[UPDATE] No updates available. Current version:', info.version);
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('[UPDATE] Error checking for updates:', err);
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  let log_message = `Downloaded ${progressObj.percent.toFixed(2)}%`;
+  log_message = log_message + ` (${progressObj.transferred}/${progressObj.total})`;
+  console.log('[UPDATE]', log_message);
+  
+  // Send progress to renderer if window exists
+  if (mainWindow && mainWindow.webContents) {
+    mainWindow.webContents.send('update-download-progress', progressObj);
+  }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('[UPDATE] Update downloaded:', info.version);
+  
+  dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    title: 'Update Ready',
+    message: `Version ${info.version} has been downloaded. The application will restart to install the update.`,
+    buttons: ['Restart Now', 'Later'],
+    defaultId: 0,
+    cancelId: 1
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+});
+
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
   // Create the window and start backend after a short delay to allow React app to load
@@ -177,6 +245,13 @@ app.whenReady().then(() => {
   setTimeout(() => {
     startBackendServer();
   }, 2000);
+
+  // Check for updates (only in production)
+  if (!isDev && app.isPackaged) {
+    setTimeout(() => {
+      checkForUpdates();
+    }, 5000); // Check for updates 5 seconds after app starts
+  }
 });
 
 // Quit when all windows are closed
