@@ -64,21 +64,21 @@ jobs:
         echo 'parent_dir = current_dir.parent' >> backend.spec
         echo '' >> backend.spec
         echo 'a = Analysis(' >> backend.spec
-        echo '    ['run.py'],' >> backend.spec
+        echo '    ["run.py"],' >> backend.spec
         echo '    pathex=[str(current_dir), str(parent_dir)],' >> backend.spec
         echo '    binaries=[],' >> backend.spec
         echo '    datas=[' >> backend.spec
         echo '        # Include config files' >> backend.spec
-        echo "        ('.env', '.')," >> backend.spec
-        echo "        ('app', 'app')," >> backend.spec
-        echo "        (str(parent_dir / 'crypto'), 'crypto')," >> backend.spec
+        echo '        (".env", "."),' >> backend.spec
+        echo '        ("app", "app"),' >> backend.spec
+        echo '        (str(parent_dir / "crypto"), "crypto"),' >> backend.spec
         echo '    ],' >> backend.spec
         echo '    hiddenimports=[' >> backend.spec
-        echo "        'flask', 'flask_cors', 'werkzeug', 'jinja2'," >> backend.spec
-        echo "        'pymongo', 'cryptography', 'cryptography.hazmat'," >> backend.spec
-        echo "        'cryptography.hazmat.primitives', 'boto3', 'python-dotenv'," >> backend.spec
-        echo "        'requests', 'werkzeug.security', 'datetime', 'pathlib'," >> backend.spec
-        echo "        'os', 'sys', 'json', 'uuid', 'hashlib', 'base64', 'secrets'," >> backend.spec
+        echo '        "flask", "flask_cors", "werkzeug", "jinja2",' >> backend.spec
+        echo '        "pymongo", "cryptography", "cryptography.hazmat",' >> backend.spec
+        echo '        "cryptography.hazmat.primitives", "boto3", "python-dotenv",' >> backend.spec
+        echo '        "requests", "werkzeug.security", "datetime", "pathlib",' >> backend.spec
+        echo '        "os", "sys", "json", "uuid", "hashlib", "base64", "secrets",' >> backend.spec
         echo '    ],' >> backend.spec
         echo '    hookspath=[],' >> backend.spec
         echo '    hooksconfig={},' >> backend.spec
@@ -99,7 +99,7 @@ jobs:
         echo '    a.zipfiles,' >> backend.spec
         echo '    a.datas,' >> backend.spec
         echo '    [],' >> backend.spec
-        echo "    name='sentra-backend'," >> backend.spec
+        echo '    name="sentra-backend",' >> backend.spec
         echo '    debug=False,' >> backend.spec
         echo '    bootloader_ignore_signals=False,' >> backend.spec
         echo '    strip=False,' >> backend.spec
