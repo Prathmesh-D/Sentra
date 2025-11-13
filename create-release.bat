@@ -1,18 +1,15 @@
 @echo off
 echo Creating a new release for Sentra Crypto
 echo.
-echo Example release notes:
-echo "Initial release with full encryption features"
-echo "Bug fixes and performance improvements"
-echo "New feature: auto-delete files"
-echo.
 
 set /p VERSION="Enter version number (e.g., 1.0.1): "
-set /p NOTES="Enter release notes: "
 
 echo.
+echo Using comprehensive release notes for Sentra Crypto v%VERSION%
+echo.
+
 echo Creating git tag v%VERSION%...
-git tag -a v%VERSION% -m "%NOTES%"
+git tag -a v%VERSION% -F RELEASE_NOTES_TEMPLATE.md
 
 echo.
 echo Pushing tag to GitHub...

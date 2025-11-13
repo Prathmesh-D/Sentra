@@ -1,52 +1,38 @@
-# Sentra Crypto Release Notes Template
+the # Sentra Crypto v1.0.0 - Initial Release
 
-## Version 1.0.0 - Initial Release
+## 🎉 Sentra Crypto v1.0.0 - Initial Release
 
-### ✨ Features
+### ✨ Key Features
 - **Hybrid Encryption**: AES-256 + RSA encryption for maximum security
-- **File Sharing**: Secure file upload and download with encryption
-- **Self-Destruct Files**: Automatic deletion after download
-- **Outbox/Inbox UI**: Clean interface for sent and received files
-- **User Authentication**: Secure JWT-based login system
-- **Cloud Storage**: MongoDB Atlas + Cloudflare R2 integration
-- **Desktop App**: Electron-based cross-platform application
+- **Secure File Sharing**: Encrypted file upload/download with self-destruct options
+- **Modern UI**: Clean React-based interface with Outbox/Inbox management
+- **Cloud Integration**: MongoDB Atlas + Cloudflare R2 storage
+- **Desktop App**: Single executable with bundled backend (no external dependencies)
 - **Auto-Updates**: Automatic updates from GitHub releases
 
-### 🔧 Technical Features
-- **Backend**: Flask API with Python cryptography
-- **Frontend**: React + TypeScript + Tailwind CSS
-- **Database**: MongoDB Atlas with automated cleanup
-- **Storage**: Cloudflare R2 for file storage
+### 🔧 Technical Highlights
+- **Frontend**: React + TypeScript + Tailwind CSS + Electron
+- **Backend**: Flask API with Python cryptography modules
 - **Security**: End-to-end encryption with key management
-- **Packaging**: Single executable with bundled backend
+- **Database**: MongoDB Atlas with automated cleanup triggers
+- **Packaging**: PyInstaller + electron-builder for cross-platform distribution
 
 ### 📦 Downloads
-- **Windows Installer**: `Sentra Setup 1.0.0.exe`
-- **Portable Version**: `Sentra-Portable-1.0.0.exe`
+- **Windows Installer**: `Sentra Setup 1.0.0.exe` (recommended)
+- **Portable Version**: `Sentra-Portable-1.0.0.exe` (no installation required)
 
 ### 🚀 Getting Started
 1. Download and run the installer
-2. Create an account or login
+2. Register/Login to your account
 3. Start encrypting and sharing files securely
+4. App will automatically check for updates
+
+### 🔒 Security Features
+- JWT-based authentication
+- AES-256 symmetric encryption
+- RSA asymmetric encryption
+- Secure key generation and management
+- Automatic file cleanup and deletion
 
 ---
-
-## Future Release Examples
-
-### Version 1.1.0 - Feature Update
-- Added file compression options
-- Improved UI responsiveness
-- Added dark mode support
-- Enhanced error handling
-
-### Version 1.0.1 - Bug Fixes
-- Fixed file upload issues on slow connections
-- Resolved memory leaks in large file processing
-- Improved error messages
-- Security patches for dependencies
-
-### Version 2.0.0 - Major Update
-- Added group file sharing
-- Implemented file versioning
-- New encryption algorithms support
-- API for third-party integrations
+*Built with Electron, React, Flask, and Python cryptography*

@@ -9,9 +9,65 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Print Hello
-        run: echo "Release workflow triggered!"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m venv venv
+          .\venv\Scripts\Activate.ps1
+          python -m pip install --upgrade pip
+          pip install wheel setuptools
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build backend executable
+        working-directory: backend
+        run: |
+          .\venv\Scripts\Activate.ps1
+          powershell -ExecutionPolicy Bypass -File generate_spec.ps1
+          pyinstaller --clean backend.spec
+
+      - name: Copy backend to frontend resources
+        run: |
+          New-Item -Path frontend\resources -ItemType Directory -Force
+          Copy-Item backend\dist\sentra-backend.exe frontend\resources\
+
+      - name: Build Electron app
+        working-directory: frontend
+        run: npm run build-electron-win
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            frontend/dist-electron/*.exe
+            frontend/dist-electron/latest.yml
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
