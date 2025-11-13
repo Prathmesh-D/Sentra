@@ -28,15 +28,24 @@ jobs:
     - name: Install frontend dependencies
       run: |
         cd frontend
+        Get-ChildItem
+        Get-Content package.json -TotalCount 20
         npm ci
+      env:
+        CI: true
 
     - name: Install backend dependencies
       run: |
         cd backend
+        Get-ChildItem
+        Get-Content requirements.txt -TotalCount 10
         python -m venv venv
         .\venv\Scripts\activate
+        python -m pip install --upgrade pip
+        pip install wheel setuptools
         pip install -r requirements.txt
         pip install pyinstaller
+        pip install wheel
 
     - name: Build backend executable
       run: |
