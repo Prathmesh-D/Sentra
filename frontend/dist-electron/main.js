@@ -1,192 +1,126 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
-import path from "path";
-import { fileURLToPath } from "url";
-import { spawn } from "child_process";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const isDev = process.env.NODE_ENV === "development";
-let mainWindow;
-let backendProcess = null;
-function sendProgressUpdate(phase, progress, message) {
-  console.log(`[PROGRESS] ${phase}: ${progress}% - ${message}`);
-  if (mainWindow && mainWindow.webContents && !mainWindow.isDestroyed()) {
+import { app as a, BrowserWindow as w, ipcMain as l, dialog as u, shell as v } from "electron";
+import i from "path";
+import { fileURLToPath as b } from "url";
+import { spawn as m } from "child_process";
+const y = b(import.meta.url), p = i.dirname(y), h = process.env.NODE_ENV === "development";
+let o, s = null;
+function g(n, r, c) {
+  if (console.log(`[PROGRESS] ${n}: ${r}% - ${c}`), o && o.webContents && !o.isDestroyed())
     try {
-      mainWindow.webContents.send("backend-progress", { phase, progress, message });
-      console.log(`[IPC] Sent progress update to renderer: ${phase}`);
-    } catch (error) {
-      console.error("[IPC] Failed to send progress update:", error);
+      o.webContents.send("backend-progress", { phase: n, progress: r, message: c }), console.log(`[IPC] Sent progress update to renderer: ${n}`);
+    } catch (e) {
+      console.error("[IPC] Failed to send progress update:", e);
     }
-  } else {
+  else
     console.warn("[IPC] Main window not ready, cannot send progress update");
-  }
 }
-function startBackendServer() {
-  const isDev2 = process.env.NODE_ENV === "development";
-  const isPackaged = app.isPackaged;
-  if (isDev2 || !isPackaged) {
-    const backendPath = path.join(__dirname, "../../backend");
-    const venvPath = path.join(backendPath, "venv", "Scripts", "python.exe");
-    const runScript = path.join(backendPath, "run.py");
-    console.log("Starting backend server in DEV mode...");
-    console.log("Backend path:", backendPath);
-    console.log("Python executable:", venvPath);
-    console.log("Run script:", runScript);
-    backendProcess = spawn(venvPath, [runScript], {
-      cwd: backendPath,
+function P() {
+  const n = process.env.NODE_ENV === "development", r = a.isPackaged;
+  if (n || !r) {
+    const e = i.join(p, "../../backend"), t = i.join(e, "venv", "Scripts", "python.exe"), d = i.join(e, "run.py");
+    console.log("Starting backend server in DEV mode..."), console.log("Backend path:", e), console.log("Python executable:", t), console.log("Run script:", d), s = m(t, [d], {
+      cwd: e,
       stdio: ["pipe", "pipe", "pipe"],
-      shell: true
+      shell: !0
     });
   } else {
-    const backendExePath = path.join(process.resourcesPath, "resources", "sentra-backend.exe");
-    console.log("Starting backend server in PRODUCTION mode...");
-    console.log("Backend executable:", backendExePath);
-    backendProcess = spawn(backendExePath, [], {
+    const e = i.join(process.resourcesPath, "resources", "sentra-backend.exe");
+    console.log("Starting backend server in PRODUCTION mode..."), console.log("Backend executable:", e), s = m(e, [], {
       stdio: ["pipe", "pipe", "pipe"],
-      shell: false
+      shell: !1
     });
   }
-  const progressPhases = [
+  [
     { phase: "initializing", progress: 25, message: "Initializing system...", delay: 0 },
     { phase: "server", progress: 50, message: "Starting backend services...", delay: 2e3 },
     { phase: "database", progress: 75, message: "Setting up database...", delay: 4e3 },
     { phase: "ready", progress: 100, message: "Backend ready!", delay: 6e3 }
-  ];
-  progressPhases.forEach(({ phase, progress, message, delay }) => {
+  ].forEach(({ phase: e, progress: t, message: d, delay: k }) => {
     setTimeout(() => {
-      sendProgressUpdate(phase, progress, message);
-    }, delay);
-  });
-  backendProcess.stdout.on("data", (data) => {
-    const output = data.toString();
-    console.log("Backend stdout:", output);
-  });
-  backendProcess.stderr.on("data", (data) => {
-    const output = data.toString();
-    console.error("Backend stderr:", output);
-  });
-  backendProcess.on("close", (code) => {
-    console.log(`Backend process exited with code ${code}`);
-    if (code !== 0) {
-      sendProgressUpdate("error", 0, `Backend failed to start (exit code: ${code})`);
-    }
-  });
-  backendProcess.on("error", (error) => {
-    console.error("Failed to start backend process:", error);
-    sendProgressUpdate("error", 0, "Failed to start backend process");
-  });
-  setTimeout(() => {
+      g(e, t, d);
+    }, k);
+  }), s.stdout.on("data", (e) => {
+    const t = e.toString();
+    console.log("Backend stdout:", t);
+  }), s.stderr.on("data", (e) => {
+    const t = e.toString();
+    console.error("Backend stderr:", t);
+  }), s.on("close", (e) => {
+    console.log(`Backend process exited with code ${e}`), e !== 0 && g("error", 0, `Backend failed to start (exit code: ${e})`);
+  }), s.on("error", (e) => {
+    console.error("Failed to start backend process:", e), g("error", 0, "Failed to start backend process");
+  }), setTimeout(() => {
     console.log("Backend server should be running on http://127.0.0.1:5000");
   }, 5e3);
 }
-function stopBackendServer() {
-  if (backendProcess) {
-    console.log("Stopping backend server...");
-    backendProcess.kill("SIGTERM");
-    setTimeout(() => {
-      if (!backendProcess.killed) {
-        backendProcess.kill("SIGKILL");
-      }
-    }, 5e3);
-    backendProcess = null;
-  }
+function S() {
+  s && (console.log("Stopping backend server..."), s.kill("SIGTERM"), setTimeout(() => {
+    s.killed || s.kill("SIGKILL");
+  }, 5e3), s = null);
 }
-function createWindow() {
-  mainWindow = new BrowserWindow({
+function f() {
+  o = new w({
     width: 1400,
     height: 900,
     minWidth: 1e3,
     minHeight: 700,
     webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      enableRemoteModule: false,
-      preload: path.join(__dirname, "preload.js")
+      nodeIntegration: !1,
+      contextIsolation: !0,
+      enableRemoteModule: !1,
+      preload: i.join(p, "preload.js")
     },
-    icon: process.platform === "win32" ? path.join(__dirname, "../build/icon.ico") : void 0,
-    show: false,
+    icon: process.platform === "win32" ? i.join(p, "../build/icon.ico") : void 0,
+    show: !1,
     // Don't show until ready
     titleBarStyle: "default",
-    autoHideMenuBar: true
+    autoHideMenuBar: !0
   });
-  const startUrl = isDev ? "http://localhost:5173" : `file://${path.join(__dirname, "../dist/index.html")}`;
-  mainWindow.loadURL(startUrl);
-  mainWindow.once("ready-to-show", () => {
-    mainWindow.show();
-    mainWindow.maximize();
-    if (isDev) {
-      mainWindow.webContents.openDevTools();
-    }
-  });
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: "deny" };
-  });
-  mainWindow.on("closed", () => {
-    mainWindow = null;
+  const n = h ? "http://localhost:5173" : `file://${i.join(p, "../dist/index.html")}`;
+  o.loadURL(n), o.once("ready-to-show", () => {
+    o.show(), o.maximize(), h && o.webContents.openDevTools();
+  }), o.webContents.setWindowOpenHandler(({ url: r }) => (v.openExternal(r), { action: "deny" })), o.on("closed", () => {
+    o = null;
   });
 }
-app.whenReady().then(() => {
-  createWindow();
-  setTimeout(() => {
-    startBackendServer();
+a.whenReady().then(() => {
+  f(), setTimeout(() => {
+    P();
   }, 2e3);
 });
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+a.on("window-all-closed", () => {
+  process.platform !== "darwin" && a.quit();
 });
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+a.on("activate", () => {
+  w.getAllWindows().length === 0 && f();
 });
-app.on("before-quit", () => {
-  stopBackendServer();
+a.on("before-quit", () => {
+  S();
 });
-app.on("web-contents-created", (event, contents) => {
-  contents.on("will-navigate", (event2, navigationUrl) => {
-    const parsedUrl = new URL(navigationUrl);
-    if (parsedUrl.origin !== "http://localhost:5173" && parsedUrl.origin !== "file://") {
-      event2.preventDefault();
-    }
+a.on("web-contents-created", (n, r) => {
+  r.on("will-navigate", (c, e) => {
+    const t = new URL(e);
+    t.origin !== "http://localhost:5173" && t.origin !== "file://" && c.preventDefault();
   });
 });
-ipcMain.handle("dialog:openFile", async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openFile"],
-    filters: [
-      { name: "All Files", extensions: ["*"] }
-    ]
-  });
-  return result;
+l.handle("dialog:openFile", async () => await u.showOpenDialog(o, {
+  properties: ["openFile"],
+  filters: [
+    { name: "All Files", extensions: ["*"] }
+  ]
+}));
+l.handle("dialog:saveFile", async (n, r) => await u.showSaveDialog(o, r));
+l.handle("dialog:openDirectory", async () => await u.showOpenDialog(o, {
+  properties: ["openDirectory"]
+}));
+l.handle("app:getVersion", () => a.getVersion());
+l.handle("app:getPlatform", () => process.platform);
+l.on("window:minimize", () => {
+  o.minimize();
 });
-ipcMain.handle("dialog:saveFile", async (event, options) => {
-  const result = await dialog.showSaveDialog(mainWindow, options);
-  return result;
+l.on("window:maximize", () => {
+  o.isMaximized() ? o.unmaximize() : o.maximize();
 });
-ipcMain.handle("dialog:openDirectory", async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openDirectory"]
-  });
-  return result;
-});
-ipcMain.handle("app:getVersion", () => {
-  return app.getVersion();
-});
-ipcMain.handle("app:getPlatform", () => {
-  return process.platform;
-});
-ipcMain.on("window:minimize", () => {
-  mainWindow.minimize();
-});
-ipcMain.on("window:maximize", () => {
-  if (mainWindow.isMaximized()) {
-    mainWindow.unmaximize();
-  } else {
-    mainWindow.maximize();
-  }
-});
-ipcMain.on("window:close", () => {
-  mainWindow.close();
+l.on("window:close", () => {
+  o.close();
 });
