@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Hybrid Crypto File Encryption Desktop App",
+  "repository": "https://github.com/pdesh/Sentra",
   "main": "dist-electron/main.js",
   "homepage": "./",
   "type": "module",
