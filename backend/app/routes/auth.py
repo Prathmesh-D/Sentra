@@ -93,16 +93,28 @@ def login():
     try:
         data = request.get_json()
         
+        # Debug logging
+        current_app.logger.info(f'[LOGIN] Received login request')
+        current_app.logger.info(f'[LOGIN] Request data keys: {list(data.keys()) if data else "None"}')
+        
         username = data.get('username')
         password = data.get('password')
         
+        current_app.logger.info(f'[LOGIN] Username: {username}, Password length: {len(password) if password else 0}')
+        
         if not username or not password:
+            current_app.logger.warning(f'[LOGIN] Missing credentials - username: {bool(username)}, password: {bool(password)}')
             return jsonify({'error': 'Username and password required'}), 400
         
         # Verify credentials from database
-        user = user_service.verify_credentials(username, password)
+        try:
+            user = user_service.verify_credentials(username, password)
+        except Exception as db_error:
+            current_app.logger.error(f'[LOGIN] Database error during authentication: {str(db_error)}')
+            return jsonify({'error': 'Database connection error. Please check your internet connection.'}), 500
         
         if not user:
+            current_app.logger.warning(f'[LOGIN] Authentication failed for username: {username}')
             return jsonify({'error': 'Invalid credentials'}), 401
         
         # Create JWT tokens

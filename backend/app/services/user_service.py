@@ -113,7 +113,12 @@ class UserService:
             users = self._get_users_collection()
             
             # Find user
-            user = users.find_one({'username': username})
+            try:
+                user = users.find_one({'username': username})
+            except Exception as db_error:
+                logger.error(f"Database query failed for user {username}: {db_error}")
+                raise Exception(f"Failed to connect to database. Please check your internet connection.")
+            
             if not user:
                 logger.warning(f"User not found: {username}")
                 return None
@@ -139,7 +144,7 @@ class UserService:
                 
         except Exception as e:
             logger.error(f"Failed to verify credentials for {username}: {e}")
-            return None
+            raise
     
     def get_user_by_username(self, username):
         """Get user by username"""
