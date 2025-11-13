@@ -1,125 +1,192 @@
-import { app as c, BrowserWindow as h, ipcMain as a, dialog as u, shell as v } from "electron";
-import i from "path";
-import { fileURLToPath as b } from "url";
-import { spawn as g } from "child_process";
-const k = b(import.meta.url), d = i.dirname(k), m = process.env.NODE_ENV === "development";
-let o, t = null;
-function p(s, r, e) {
-  if (console.log(`[PROGRESS] ${s}: ${r}% - ${e}`), o && o.webContents && !o.isDestroyed())
+import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
+import path from "path";
+import { fileURLToPath } from "url";
+import { spawn } from "child_process";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const isDev = process.env.NODE_ENV === "development";
+let mainWindow;
+let backendProcess = null;
+function sendProgressUpdate(phase, progress, message) {
+  console.log(`[PROGRESS] ${phase}: ${progress}% - ${message}`);
+  if (mainWindow && mainWindow.webContents && !mainWindow.isDestroyed()) {
     try {
-      o.webContents.send("backend-progress", { phase: s, progress: r, message: e }), console.log(`[IPC] Sent progress update to renderer: ${s}`);
-    } catch (n) {
-      console.error("[IPC] Failed to send progress update:", n);
+      mainWindow.webContents.send("backend-progress", { phase, progress, message });
+      console.log(`[IPC] Sent progress update to renderer: ${phase}`);
+    } catch (error) {
+      console.error("[IPC] Failed to send progress update:", error);
     }
-  else
+  } else {
     console.warn("[IPC] Main window not ready, cannot send progress update");
+  }
 }
-function y() {
-  if (process.env.NODE_ENV === "development") {
-    const e = i.join(d, "../../backend"), n = i.join(e, "venv", "Scripts", "python.exe"), l = i.join(e, "run.py");
-    console.log("Starting backend server in DEV mode..."), console.log("Backend path:", e), console.log("Python executable:", n), console.log("Run script:", l), t = g(n, [l], {
-      cwd: e,
+function startBackendServer() {
+  const isDev2 = process.env.NODE_ENV === "development";
+  const isPackaged = app.isPackaged;
+  if (isDev2 || !isPackaged) {
+    const backendPath = path.join(__dirname, "../../backend");
+    const venvPath = path.join(backendPath, "venv", "Scripts", "python.exe");
+    const runScript = path.join(backendPath, "run.py");
+    console.log("Starting backend server in DEV mode...");
+    console.log("Backend path:", backendPath);
+    console.log("Python executable:", venvPath);
+    console.log("Run script:", runScript);
+    backendProcess = spawn(venvPath, [runScript], {
+      cwd: backendPath,
       stdio: ["pipe", "pipe", "pipe"],
-      shell: !0
+      shell: true
     });
   } else {
-    const e = i.join(process.resourcesPath, "resources", "sentra-backend.exe");
-    console.log("Starting backend server in PRODUCTION mode..."), console.log("Backend executable:", e), t = g(e, [], {
+    const backendExePath = path.join(process.resourcesPath, "resources", "sentra-backend.exe");
+    console.log("Starting backend server in PRODUCTION mode...");
+    console.log("Backend executable:", backendExePath);
+    backendProcess = spawn(backendExePath, [], {
       stdio: ["pipe", "pipe", "pipe"],
-      shell: !1
+      shell: false
     });
   }
-  [
+  const progressPhases = [
     { phase: "initializing", progress: 25, message: "Initializing system...", delay: 0 },
     { phase: "server", progress: 50, message: "Starting backend services...", delay: 2e3 },
     { phase: "database", progress: 75, message: "Setting up database...", delay: 4e3 },
     { phase: "ready", progress: 100, message: "Backend ready!", delay: 6e3 }
-  ].forEach(({ phase: e, progress: n, message: l, delay: f }) => {
+  ];
+  progressPhases.forEach(({ phase, progress, message, delay }) => {
     setTimeout(() => {
-      p(e, n, l);
-    }, f);
-  }), t.stdout.on("data", (e) => {
-    const n = e.toString();
-    console.log("Backend stdout:", n);
-  }), t.stderr.on("data", (e) => {
-    const n = e.toString();
-    console.error("Backend stderr:", n);
-  }), t.on("close", (e) => {
-    console.log(`Backend process exited with code ${e}`), e !== 0 && p("error", 0, `Backend failed to start (exit code: ${e})`);
-  }), t.on("error", (e) => {
-    console.error("Failed to start backend process:", e), p("error", 0, "Failed to start backend process");
-  }), setTimeout(() => {
+      sendProgressUpdate(phase, progress, message);
+    }, delay);
+  });
+  backendProcess.stdout.on("data", (data) => {
+    const output = data.toString();
+    console.log("Backend stdout:", output);
+  });
+  backendProcess.stderr.on("data", (data) => {
+    const output = data.toString();
+    console.error("Backend stderr:", output);
+  });
+  backendProcess.on("close", (code) => {
+    console.log(`Backend process exited with code ${code}`);
+    if (code !== 0) {
+      sendProgressUpdate("error", 0, `Backend failed to start (exit code: ${code})`);
+    }
+  });
+  backendProcess.on("error", (error) => {
+    console.error("Failed to start backend process:", error);
+    sendProgressUpdate("error", 0, "Failed to start backend process");
+  });
+  setTimeout(() => {
     console.log("Backend server should be running on http://127.0.0.1:5000");
   }, 5e3);
 }
-function S() {
-  t && (console.log("Stopping backend server..."), t.kill("SIGTERM"), setTimeout(() => {
-    t.killed || t.kill("SIGKILL");
-  }, 5e3), t = null);
+function stopBackendServer() {
+  if (backendProcess) {
+    console.log("Stopping backend server...");
+    backendProcess.kill("SIGTERM");
+    setTimeout(() => {
+      if (!backendProcess.killed) {
+        backendProcess.kill("SIGKILL");
+      }
+    }, 5e3);
+    backendProcess = null;
+  }
 }
-function w() {
-  o = new h({
+function createWindow() {
+  mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1e3,
     minHeight: 700,
     webPreferences: {
-      nodeIntegration: !1,
-      contextIsolation: !0,
-      enableRemoteModule: !1,
-      preload: i.join(d, "preload.js")
+      nodeIntegration: false,
+      contextIsolation: true,
+      enableRemoteModule: false,
+      preload: path.join(__dirname, "preload.js")
     },
-    icon: process.platform === "win32" ? i.join(d, "../build/icon.ico") : void 0,
-    show: !1,
+    icon: process.platform === "win32" ? path.join(__dirname, "../build/icon.ico") : void 0,
+    show: false,
     // Don't show until ready
     titleBarStyle: "default",
-    autoHideMenuBar: !0
+    autoHideMenuBar: true
   });
-  const s = m ? "http://localhost:5173" : `file://${i.join(d, "../dist/index.html")}`;
-  o.loadURL(s), o.once("ready-to-show", () => {
-    o.show(), o.maximize(), m && o.webContents.openDevTools();
-  }), o.webContents.setWindowOpenHandler(({ url: r }) => (v.openExternal(r), { action: "deny" })), o.on("closed", () => {
-    o = null;
+  const startUrl = isDev ? "http://localhost:5173" : `file://${path.join(__dirname, "../dist/index.html")}`;
+  mainWindow.loadURL(startUrl);
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show();
+    mainWindow.maximize();
+    if (isDev) {
+      mainWindow.webContents.openDevTools();
+    }
+  });
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
+  mainWindow.on("closed", () => {
+    mainWindow = null;
   });
 }
-c.whenReady().then(() => {
-  w(), setTimeout(() => {
-    y();
+app.whenReady().then(() => {
+  createWindow();
+  setTimeout(() => {
+    startBackendServer();
   }, 2e3);
 });
-c.on("window-all-closed", () => {
-  process.platform !== "darwin" && c.quit();
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });
-c.on("activate", () => {
-  h.getAllWindows().length === 0 && w();
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
-c.on("before-quit", () => {
-  S();
+app.on("before-quit", () => {
+  stopBackendServer();
 });
-c.on("web-contents-created", (s, r) => {
-  r.on("will-navigate", (e, n) => {
-    const l = new URL(n);
-    l.origin !== "http://localhost:5173" && l.origin !== "file://" && e.preventDefault();
+app.on("web-contents-created", (event, contents) => {
+  contents.on("will-navigate", (event2, navigationUrl) => {
+    const parsedUrl = new URL(navigationUrl);
+    if (parsedUrl.origin !== "http://localhost:5173" && parsedUrl.origin !== "file://") {
+      event2.preventDefault();
+    }
   });
 });
-a.handle("dialog:openFile", async () => await u.showOpenDialog(o, {
-  properties: ["openFile"],
-  filters: [
-    { name: "All Files", extensions: ["*"] }
-  ]
-}));
-a.handle("dialog:saveFile", async (s, r) => await u.showSaveDialog(o, r));
-a.handle("dialog:openDirectory", async () => await u.showOpenDialog(o, {
-  properties: ["openDirectory"]
-}));
-a.handle("app:getVersion", () => c.getVersion());
-a.handle("app:getPlatform", () => process.platform);
-a.on("window:minimize", () => {
-  o.minimize();
+ipcMain.handle("dialog:openFile", async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openFile"],
+    filters: [
+      { name: "All Files", extensions: ["*"] }
+    ]
+  });
+  return result;
 });
-a.on("window:maximize", () => {
-  o.isMaximized() ? o.unmaximize() : o.maximize();
+ipcMain.handle("dialog:saveFile", async (event, options) => {
+  const result = await dialog.showSaveDialog(mainWindow, options);
+  return result;
 });
-a.on("window:close", () => {
-  o.close();
+ipcMain.handle("dialog:openDirectory", async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openDirectory"]
+  });
+  return result;
+});
+ipcMain.handle("app:getVersion", () => {
+  return app.getVersion();
+});
+ipcMain.handle("app:getPlatform", () => {
+  return process.platform;
+});
+ipcMain.on("window:minimize", () => {
+  mainWindow.minimize();
+});
+ipcMain.on("window:maximize", () => {
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow.maximize();
+  }
+});
+ipcMain.on("window:close", () => {
+  mainWindow.close();
 });

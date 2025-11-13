@@ -28,8 +28,9 @@ function sendProgressUpdate(phase, progress, message) {
 
 function startBackendServer() {
   const isDev = process.env.NODE_ENV === 'development';
+  const isPackaged = app.isPackaged;
   
-  if (isDev) {
+  if (isDev || !isPackaged) {
     // Development: Use Python with venv
     const backendPath = path.join(__dirname, '../../backend');
     const venvPath = path.join(backendPath, 'venv', 'Scripts', 'python.exe');
@@ -46,7 +47,7 @@ function startBackendServer() {
       shell: true
     });
   } else {
-    // Production: Use bundled executable
+    // Production: Use bundled executable (only when packaged)
     const backendExePath = path.join(process.resourcesPath, 'resources', 'sentra-backend.exe');
     
     console.log('Starting backend server in PRODUCTION mode...');
