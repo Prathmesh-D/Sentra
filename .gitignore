@@ -44,6 +44,14 @@ frontend/.cache/
 # Backend cache
 backend/.cache/
 
+# Electron builds
+frontend/dist-electron/
+frontend/resources/
+
+# PyInstaller builds
+backend/dist/
+backend/build/
+
 # Temporary files
 *.tmp
 *.swp
