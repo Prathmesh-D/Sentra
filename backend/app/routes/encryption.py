@@ -320,15 +320,20 @@ def decrypt_file(file_id):
         
         if not user_wrapped_key:
             # Fall back to old format with metadata file
-            if not wrapped_key_path or not os.path.exists(wrapped_key_path):
-                return jsonify({'error': 'Encryption key not found'}), 404
+            if not wrapped_key_path:
+                return jsonify({'error': 'Encryption key not found - no wrapped_key in metadata'}), 404
+            if not os.path.exists(wrapped_key_path):
+                return jsonify({'error': 'Encryption key file not found on disk'}), 404
         
         # Decrypt the file
         result = crypto_service.decrypt_file(
             encrypted_file_path=encrypted_file_path,
             wrapped_key_path=wrapped_key_path,
             username=username,
-            wrapped_key_hex=user_wrapped_key
+            wrapped_key_hex=user_wrapped_key,
+            iv_hex=file_metadata.get('iv'),  # Pass IV from metadata
+            tag_hex=file_metadata.get('tag'),  # Pass tag from metadata
+            original_filename=file_metadata.get('original_filename')  # Pass original filename
         )
         
         if not result.get('success'):
