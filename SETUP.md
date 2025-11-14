@@ -31,17 +31,9 @@ pip install -r requirements.txt
 
 # Create .env file
 copy .env.example .env
-
-# Edit .env and add your MongoDB URI
-notepad .env
 ```
 
-**Important**: Update these in `.env`:
-```env
-MONGO_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster.mongodb.net/
-SECRET_KEY=generate-a-random-key-here
-JWT_SECRET_KEY=generate-another-random-key-here
-```
+**Note**: MongoDB URI is already configured! No need to edit `.env` - it works out of the box with the shared MongoDB Atlas database.
 
 ### 3. Frontend Setup
 ```powershell
