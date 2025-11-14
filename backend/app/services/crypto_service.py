@@ -240,14 +240,20 @@ class CryptoService:
             # Get file type from filename
             file_type = self.get_file_type(filename)
             
+            # Store relative paths to DATA_DIR for cross-machine compatibility
+            data_dir = str(current_app.config['DATA_DIR'])
+            encrypted_file_rel = os.path.relpath(result['encrypted_file'], data_dir)
+            metadata_file_rel = os.path.relpath(result.get('metadata_file'), data_dir) if result.get('metadata_file') else None
+            wrapped_key_rel = os.path.relpath(result.get('wrapped_key_file', result.get('metadata_file')), data_dir) if result.get('wrapped_key_file') or result.get('metadata_file') else None
+            
             # Prepare metadata
             metadata = {
                 'original_filename': filename,
                 'file_type': file_type,
                 'encrypted_filename': os.path.basename(result['encrypted_file']),
-                'encrypted_file_path': result['encrypted_file'],
-                'wrapped_key_path': result.get('wrapped_key_file', result.get('metadata_file')),  # Handle both formats
-                'metadata_file': result.get('metadata_file'),
+                'encrypted_file_path': encrypted_file_rel,  # Store relative path
+                'wrapped_key_path': wrapped_key_rel,  # Store relative path
+                'metadata_file': metadata_file_rel,  # Store relative path
                 'sender': username,
                 'recipients': recipients,
                 'wrapped_keys': wrapped_keys,  # Store wrapped keys for all users

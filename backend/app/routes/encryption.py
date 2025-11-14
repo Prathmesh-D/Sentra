@@ -258,12 +258,32 @@ def decrypt_file(file_id):
         if file_metadata.get('self_destruct') and file_metadata.get('download_count', 0) > 0:
             return jsonify({'error': 'File has self-destructed after first download'}), 410
         
-        # Get file paths
-        encrypted_file_path = file_metadata.get('encrypted_file_path')
-        metadata_file_path = file_metadata.get('metadata_file')
-        wrapped_key_path = file_metadata.get('wrapped_key_path', metadata_file_path)
+        # Get file paths and resolve relative paths
+        encrypted_file_rel = file_metadata.get('encrypted_file_path')
+        metadata_file_rel = file_metadata.get('metadata_file')
+        wrapped_key_rel = file_metadata.get('wrapped_key_path', metadata_file_rel)
+        
+        # Resolve relative paths against DATA_DIR (backward compatible with absolute paths)
+        data_dir = current_app.config['DATA_DIR']
+        
+        # Check if path is already absolute (old format) or relative (new format)
+        if encrypted_file_rel and os.path.isabs(encrypted_file_rel):
+            encrypted_file_path = encrypted_file_rel  # Already absolute, use as-is
+        else:
+            encrypted_file_path = os.path.join(data_dir, encrypted_file_rel) if encrypted_file_rel else None
+            
+        if metadata_file_rel and os.path.isabs(metadata_file_rel):
+            metadata_file_path = metadata_file_rel
+        else:
+            metadata_file_path = os.path.join(data_dir, metadata_file_rel) if metadata_file_rel else None
+            
+        if wrapped_key_rel and os.path.isabs(wrapped_key_rel):
+            wrapped_key_path = wrapped_key_rel
+        else:
+            wrapped_key_path = os.path.join(data_dir, wrapped_key_rel) if wrapped_key_rel else None
         
         if not encrypted_file_path or not os.path.exists(encrypted_file_path):
+            current_app.logger.error(f'[ERROR] Encrypted file not found: {encrypted_file_path}')
             return jsonify({'error': 'Encrypted file not found on disk'}), 404
         
         # Check if we have wrapped_keys in metadata (new format)
