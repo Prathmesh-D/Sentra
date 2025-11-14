@@ -258,61 +258,33 @@ def decrypt_file(file_id):
         if file_metadata.get('self_destruct') and file_metadata.get('download_count', 0) > 0:
             return jsonify({'error': 'File has self-destructed after first download'}), 410
         
-        # Download encrypted file from GridFS (cloud storage)
-        gridfs_id = file_metadata.get('gridfs_id')
+        # Get file paths and resolve relative paths
+        encrypted_file_rel = file_metadata.get('encrypted_file_path')
+        metadata_file_rel = file_metadata.get('metadata_file')
+        wrapped_key_rel = file_metadata.get('wrapped_key_path', metadata_file_rel)
         
-        if not gridfs_id:
-            # Fallback to old method with local file paths for backward compatibility
-            current_app.logger.warning('[WARN] File uses old local storage method, attempting fallback...')
-            encrypted_file_rel = file_metadata.get('encrypted_file_path')
-            metadata_file_rel = file_metadata.get('metadata_file')
-            wrapped_key_rel = file_metadata.get('wrapped_key_path', metadata_file_rel)
-            
-            # Resolve relative paths against DATA_DIR (backward compatible with absolute paths)
-            data_dir = current_app.config['DATA_DIR']
-            
-            # Check if path is already absolute (old format) or relative (new format)
-            if encrypted_file_rel and os.path.isabs(encrypted_file_rel):
-                encrypted_file_path = encrypted_file_rel  # Already absolute, use as-is
-            else:
-                encrypted_file_path = os.path.join(data_dir, encrypted_file_rel) if encrypted_file_rel else None
-                
-            if metadata_file_rel and os.path.isabs(metadata_file_rel):
-                metadata_file_path = metadata_file_rel
-            else:
-                metadata_file_path = os.path.join(data_dir, metadata_file_rel) if metadata_file_rel else None
-                
-            if wrapped_key_rel and os.path.isabs(wrapped_key_rel):
-                wrapped_key_path = wrapped_key_rel
-            else:
-                wrapped_key_path = os.path.join(data_dir, wrapped_key_rel) if wrapped_key_rel else None
-            
-            if not encrypted_file_path or not os.path.exists(encrypted_file_path):
-                current_app.logger.error(f'[ERROR] Encrypted file not found: {encrypted_file_path}')
-                return jsonify({'error': 'Encrypted file not found. Please re-upload this file.'}), 404
+        # Resolve relative paths against DATA_DIR (backward compatible with absolute paths)
+        data_dir = current_app.config['DATA_DIR']
+        
+        # Check if path is already absolute (old format) or relative (new format)
+        if encrypted_file_rel and os.path.isabs(encrypted_file_rel):
+            encrypted_file_path = encrypted_file_rel  # Already absolute, use as-is
         else:
-            # New GridFS method - download from cloud
-            try:
-                from app.services.database import get_gridfs
-                from bson import ObjectId
-                
-                fs = get_gridfs()
-                grid_out = fs.get(ObjectId(gridfs_id))
-                
-                # Save to temp location for decryption
-                temp_dir = os.path.join(current_app.config['DATA_DIR'], 'temp')
-                os.makedirs(temp_dir, exist_ok=True)
-                encrypted_file_path = os.path.join(temp_dir, f"temp_encrypted_{file_id}.enc")
-                
-                with open(encrypted_file_path, 'wb') as f:
-                    f.write(grid_out.read())
-                
-                current_app.logger.info(f'[OK] Downloaded encrypted file from GridFS: {gridfs_id}')
-                wrapped_key_path = None  # Keys are stored in metadata
-                
-            except Exception as gridfs_error:
-                current_app.logger.error(f'[ERROR] Failed to download from GridFS: {str(gridfs_error)}')
-                return jsonify({'error': 'Failed to retrieve encrypted file from cloud storage'}), 500
+            encrypted_file_path = os.path.join(data_dir, encrypted_file_rel) if encrypted_file_rel else None
+            
+        if metadata_file_rel and os.path.isabs(metadata_file_rel):
+            metadata_file_path = metadata_file_rel
+        else:
+            metadata_file_path = os.path.join(data_dir, metadata_file_rel) if metadata_file_rel else None
+            
+        if wrapped_key_rel and os.path.isabs(wrapped_key_rel):
+            wrapped_key_path = wrapped_key_rel
+        else:
+            wrapped_key_path = os.path.join(data_dir, wrapped_key_rel) if wrapped_key_rel else None
+        
+        if not encrypted_file_path or not os.path.exists(encrypted_file_path):
+            current_app.logger.error(f'[ERROR] Encrypted file not found: {encrypted_file_path}')
+            return jsonify({'error': 'Encrypted file not found on disk'}), 404
         
         # Check if we have wrapped_keys in metadata (new format)
         wrapped_keys = file_metadata.get('wrapped_keys', {})
@@ -320,20 +292,15 @@ def decrypt_file(file_id):
         
         if not user_wrapped_key:
             # Fall back to old format with metadata file
-            if not wrapped_key_path:
-                return jsonify({'error': 'Encryption key not found - no wrapped_key in metadata'}), 404
-            if not os.path.exists(wrapped_key_path):
-                return jsonify({'error': 'Encryption key file not found on disk'}), 404
+            if not wrapped_key_path or not os.path.exists(wrapped_key_path):
+                return jsonify({'error': 'Encryption key not found'}), 404
         
         # Decrypt the file
         result = crypto_service.decrypt_file(
             encrypted_file_path=encrypted_file_path,
             wrapped_key_path=wrapped_key_path,
             username=username,
-            wrapped_key_hex=user_wrapped_key,
-            iv_hex=file_metadata.get('iv'),  # Pass IV from metadata
-            tag_hex=file_metadata.get('tag'),  # Pass tag from metadata
-            original_filename=file_metadata.get('original_filename')  # Pass original filename
+            wrapped_key_hex=user_wrapped_key
         )
         
         if not result.get('success'):
@@ -351,24 +318,13 @@ def decrypt_file(file_id):
                 }
             )
             
-            # If self-destruct, delete the file from GridFS and database
+            # If self-destruct, delete the file
             if file_metadata.get('self_destruct'):
                 db.encrypted_files.update_one(
                     {'_id': ObjectId(file_id)},
                     {'$set': {'status': 'deleted'}}
                 )
-                # Delete from GridFS if using cloud storage
-                if gridfs_id:
-                    try:
-                        from app.services.database import get_gridfs
-                        fs = get_gridfs()
-                        fs.delete(ObjectId(gridfs_id))
-                        current_app.logger.info(f'[OK] Deleted self-destruct file from GridFS: {gridfs_id}')
-                    except Exception as e:
-                        current_app.logger.warning(f'[WARN] Failed to delete from GridFS: {str(e)}')
-                else:
-                    # Old local file cleanup
-                    crypto_service.cleanup_temp_files(encrypted_file_path, wrapped_key_path)
+                crypto_service.cleanup_temp_files(encrypted_file_path, wrapped_key_path)
                 
         except Exception as db_error:
             current_app.logger.warning(f'[WARN] Failed to update download count: {str(db_error)}')
@@ -376,22 +332,12 @@ def decrypt_file(file_id):
         # Send file
         original_filename = file_metadata.get('original_filename', 'decrypted_file')
         
-        response = send_file(
+        return send_file(
             decrypted_file_path,
             as_attachment=True,
             download_name=original_filename,
             mimetype='application/octet-stream'
         )
-        
-        # Clean up temp files after sending (for GridFS downloads)
-        if gridfs_id and os.path.exists(encrypted_file_path):
-            try:
-                os.remove(encrypted_file_path)
-                current_app.logger.info('[OK] Cleaned up temp encrypted file')
-            except Exception as e:
-                current_app.logger.warning(f'[WARN] Failed to cleanup temp file: {str(e)}')
-        
-        return response
         
     except Exception as e:
         current_app.logger.error(f'[ERROR] Decryption error: {str(e)}')

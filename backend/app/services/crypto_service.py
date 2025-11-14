@@ -201,16 +201,13 @@ class CryptoService:
             if not result.get('success'):
                 raise Exception(result.get('error', 'Encryption failed'))
             
-            # Get the AES key and encryption parameters from the metadata file
+            # Get the AES key from the encrypted metadata file
             import json
             with open(result['metadata_file'], 'r') as f:
                 metadata_content = json.load(f)
             
             # Extract the encrypted AES key from metadata (it was encrypted with sender's key)
             encrypted_aes_key_hex = metadata_content.get('encrypted_aes_key')
-            iv_hex = metadata_content.get('iv')
-            tag_hex = metadata_content.get('tag')
-            original_filename_from_meta = metadata_content.get('original_file', {}).get('name', filename)
             
             # Wrap the AES key for all recipients (including sender)
             all_users = [username] + (recipients if recipients else [])
@@ -243,44 +240,23 @@ class CryptoService:
             # Get file type from filename
             file_type = self.get_file_type(filename)
             
-            # Upload encrypted file to GridFS (cloud storage)
-            from app.services.database import get_gridfs
-            fs = get_gridfs()
+            # Store relative paths to DATA_DIR for cross-machine compatibility
+            data_dir = str(current_app.config['DATA_DIR'])
+            encrypted_file_rel = os.path.relpath(result['encrypted_file'], data_dir)
+            metadata_file_rel = os.path.relpath(result.get('metadata_file'), data_dir) if result.get('metadata_file') else None
+            wrapped_key_rel = os.path.relpath(result.get('wrapped_key_file', result.get('metadata_file')), data_dir) if result.get('wrapped_key_file') or result.get('metadata_file') else None
             
-            with open(result['encrypted_file'], 'rb') as encrypted_file:
-                gridfs_id = fs.put(
-                    encrypted_file,
-                    filename=os.path.basename(result['encrypted_file']),
-                    content_type='application/octet-stream',
-                    metadata={
-                        'original_filename': filename,
-                        'sender': username,
-                        'encryption_type': encryption_type
-                    }
-                )
-            
-            current_app.logger.info(f'[OK] Encrypted file uploaded to GridFS: {gridfs_id}')
-            
-            # Clean up local encrypted file after uploading to cloud
-            try:
-                os.remove(result['encrypted_file'])
-                if result.get('metadata_file') and os.path.exists(result['metadata_file']):
-                    os.remove(result['metadata_file'])
-                current_app.logger.info('[OK] Local encrypted files cleaned up')
-            except Exception as e:
-                current_app.logger.warning(f'[WARN] Failed to cleanup local files: {str(e)}')
-            
-            # Prepare metadata (store GridFS ID instead of file path)
+            # Prepare metadata
             metadata = {
                 'original_filename': filename,
                 'file_type': file_type,
                 'encrypted_filename': os.path.basename(result['encrypted_file']),
-                'gridfs_id': str(gridfs_id),  # Store GridFS file ID for cloud retrieval
+                'encrypted_file_path': encrypted_file_rel,  # Store relative path
+                'wrapped_key_path': wrapped_key_rel,  # Store relative path
+                'metadata_file': metadata_file_rel,  # Store relative path
                 'sender': username,
                 'recipients': recipients,
                 'wrapped_keys': wrapped_keys,  # Store wrapped keys for all users
-                'iv': iv_hex,  # Store IV for decryption
-                'tag': tag_hex,  # Store authentication tag for decryption
                 'encryption_type': encryption_type,
                 'key_size': key_size * 8,  # bits
                 'file_size': result.get('original_file_info', {}).get('size_bytes', 0),
@@ -294,12 +270,12 @@ class CryptoService:
                 'status': 'active'
             }
             
-            current_app.logger.info(f'[OK] File encrypted and stored in cloud: {filename}')
+            current_app.logger.info(f'[OK] File encrypted successfully: {filename}')
             
             return {
                 'success': True,
                 'metadata': metadata,
-                'gridfs_id': str(gridfs_id)
+                'file_path': result['encrypted_file']
             }
             
         except Exception as e:
@@ -309,18 +285,15 @@ class CryptoService:
                 'error': str(e)
             }
     
-    def decrypt_file(self, encrypted_file_path, wrapped_key_path, username, wrapped_key_hex=None, iv_hex=None, tag_hex=None, original_filename=None, output_dir=None):
+    def decrypt_file(self, encrypted_file_path, wrapped_key_path, username, wrapped_key_hex=None, output_dir=None):
         """
         Decrypt a file using hybrid cryptography
         
         Args:
-            encrypted_file_path (str): Path to encrypted file
-            wrapped_key_path (str): Path to metadata file (for old format)
+            encrypted_file_path (str): Path to encrypted file (not used with metadata approach)
+            wrapped_key_path (str): Path to metadata file (contains all decryption info)
             username (str): Username of recipient (for loading their private key)
             wrapped_key_hex (str): Hex-encoded wrapped key for this specific user (new format)
-            iv_hex (str): Hex-encoded IV (new format)
-            tag_hex (str): Hex-encoded authentication tag (new format)
-            original_filename (str): Original filename (new format)
             output_dir (str): Output directory for decrypted file
             
         Returns:
@@ -336,49 +309,8 @@ class CryptoService:
             if not self.crypto_system.generate_or_load_keys(key_name=user_key_name):
                 raise Exception(f"Failed to load RSA keys for user: {username}")
             
-            # If we have the wrapped key directly, use it (new GridFS format)
-            if wrapped_key_hex and iv_hex and tag_hex:
-                current_app.logger.info('[*] Using wrapped key from metadata (GridFS format)')
-                
-                # Load user's private key
-                private_key_path = os.path.join(
-                    self.crypto_system.folders['keys'],
-                    f"{user_key_name}_private.pem"
-                )
-                private_key = rsa_utils.load_private_key_from_file(private_key_path)
-                
-                # Decrypt the wrapped AES key
-                wrapped_key_bytes = bytes.fromhex(wrapped_key_hex)
-                aes_key = rsa_utils.decrypt_aes_key_with_rsa(wrapped_key_bytes, private_key)
-                
-                if aes_key is None:
-                    raise Exception("Failed to decrypt wrapped AES key")
-                
-                # Use IV and tag from parameters
-                iv = bytes.fromhex(iv_hex)
-                tag = bytes.fromhex(tag_hex)
-                
-                # Decrypt the file
-                if output_dir is None:
-                    output_dir = self.crypto_system.folders['decrypted']
-                
-                output_path = os.path.join(output_dir, original_filename or 'decrypted_file')
-                success = aes_utils.decrypt_file(encrypted_file_path, output_path, aes_key, iv, tag)
-                
-                if not success:
-                    raise Exception("AES decryption failed")
-                
-                current_app.logger.info(f'[OK] File decrypted successfully')
-                
-                return {
-                    'success': True,
-                    'decrypted_file': output_path,
-                    'file_size': os.path.getsize(output_path),
-                    'integrity_verified': True
-                }
-            
-            # If we have wrapped_key_hex but no IV/tag, need to read from metadata file (old relative path format)
-            if wrapped_key_hex and wrapped_key_path:
+            # If we have the wrapped key directly, use it (new format)
+            if wrapped_key_hex:
                 current_app.logger.info('[*] Using wrapped key from metadata')
                 
                 # Load user's private key
