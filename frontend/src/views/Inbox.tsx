@@ -88,8 +88,11 @@ export default function Inbox() {
       const errorMessage = error.response?.data?.error || error.message || 'Failed to load inbox';
       if (!silent) toast.error(errorMessage);
       console.error('Fetch inbox error:', error);
+      // Set empty array on error to show empty state instead of white screen
+      setInboxFiles([]);
     } finally {
-      if (!silent) setIsLoading(false);
+      // Always stop loading, even on error
+      setIsLoading(false);
     }
   };
 

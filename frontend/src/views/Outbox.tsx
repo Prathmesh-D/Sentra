@@ -102,6 +102,8 @@ export default function Outbox() {
       const errorMessage = error.response?.data?.error || error.message || 'Failed to load outbox';
       toast.error(errorMessage);
       console.error('Fetch outbox error:', error);
+      // Set empty array on error to show empty state instead of white screen
+      setOutboxFiles([]);
     } finally {
       setIsLoading(false); // Always stop loading after API call
     }
