@@ -4,6 +4,7 @@ Handles MongoDB connection and provides database access
 """
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+import gridfs
 from flask import current_app
 import logging
 
@@ -16,6 +17,7 @@ class DatabaseManager:
     _instance = None
     _client = None
     _db = None
+    _gridfs = None
     
     def __new__(cls):
         if cls._instance is None:
@@ -51,7 +53,11 @@ class DatabaseManager:
             db_name = current_app.config.get('MONGO_DB_NAME', 'sentra_encryption')
             self._db = self._client[db_name]
             
+            # Initialize GridFS for file storage
+            self._gridfs = gridfs.GridFS(self._db)
+            
             logger.info(f"[OK] Connected to MongoDB database: {db_name}")
+            logger.info("[OK] GridFS initialized for cloud file storage")
             
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             logger.error(f"[ERROR] Failed to connect to MongoDB: {e}")
@@ -73,6 +79,13 @@ class DatabaseManager:
         if self._client is None:
             self._connect()
         return self._client
+    
+    @property
+    def gridfs(self):
+        """Get GridFS instance for file storage - connects lazily"""
+        if self._gridfs is None:
+            self._connect()
+        return self._gridfs
     
     def get_collection(self, collection_name):
         """
@@ -146,6 +159,11 @@ db_manager = DatabaseManager()
 def get_db():
     """Helper function to get database instance"""
     return db_manager.db
+
+
+def get_gridfs():
+    """Helper function to get GridFS instance for file storage"""
+    return db_manager.gridfs
 
 
 def get_collection(collection_name):
