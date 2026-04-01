@@ -51,15 +51,14 @@ services:
   - type: web
     name: sentra
     runtime: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build:web
+    buildCommand: cd frontend && npm install && npm run build:web
     publishDir: frontend/dist
     plan: free
     envVars:
       - key: VITE_API_URL
         sync: false
       - key: VITE_WEB
-        value: true
+        value: "true"
     routes:
       - type: rewrite
         source: /*
