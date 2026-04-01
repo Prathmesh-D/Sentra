@@ -52,7 +52,7 @@ services:
     name: sentra
     runtime: static
     buildCommand: cd frontend && npm install && npm run build:web
-    publishDir: frontend/dist
+    staticPublishPath: frontend/dist
     plan: free
     envVars:
       - key: VITE_API_URL
