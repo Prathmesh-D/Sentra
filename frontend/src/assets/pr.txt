@@ -1,0 +1,261 @@
+Sentra Remediation PR Plan (Exact Commit Order)
+
+Goal
+- Execute fixes in strict order: security first, then reliability, then cleanup.
+- Each commit should be independently reviewable and testable.
+
+Branch Strategy
+- Branch name: hardening/remediation-phase1
+- Merge strategy: squash disabled, use merge commits to preserve commit order.
+- CI policy: required checks must pass before merge.
+
+====================================================================
+PHASE 1: SECURITY-FIRST
+====================================================================
+
+Commit 01: Purge exposed secrets and rotate credentials
+Status: DONE
+Estimated effort: 4-6 hours
+Files:
+- backend/.env
+- backend/.env.example
+- supp_docs/GITHUB_SECRETS_SETUP.md
+- .github/workflows/release.yml
+Changes:
+- Remove plaintext Mongo URI, secret keys, and any real credentials from tracked files.
+- Replace all examples with placeholders only.
+- Add release workflow guard: fail if required secrets are missing.
+Acceptance criteria:
+- No hardcoded credentials remain in git-tracked files.
+- Release workflow fails fast when secrets are absent.
+- Mongo password, JWT secret, and app secret rotated outside git.
+
+Commit 02: Enforce production config requirements at startup
+Status: DONE
+Estimated effort: 2-3 hours
+Files:
+- backend/src/main/java/com/sentra/backend/runtime/AppConfig.java
+- backend/src/main/java/com/sentra/backend/auth/AuthIdentityModule.java
+Changes:
+- Remove insecure secret fallbacks.
+- Use one canonical env flag for runtime mode.
+- Fail startup in production when critical env vars are missing.
+Acceptance criteria:
+- Production boot aborts with clear error if required env is missing.
+- No dev-secret fallback is reachable in production mode.
+
+Commit 03: Move auth from web storage to secure HttpOnly cookies
+Status: DONE
+Estimated effort: 8-12 hours
+Files:
+- frontend/src/api/client.ts
+- frontend/src/api/authService.ts
+- frontend/src/context/AuthContext.tsx
+- backend/src/main/java/com/sentra/backend/runtime/HttpServerApp.java
+- backend/src/main/java/com/sentra/backend/auth/AuthIdentityModule.java
+Changes:
+- Backend issues HttpOnly + Secure + SameSite cookies for access/refresh flows.
+- Frontend removes sessionStorage/localStorage token reads/writes.
+- Update login, refresh, logout, auth-expired paths for cookie-based auth.
+Acceptance criteria:
+- No runtime token persistence in browser storage.
+- Login/refresh/logout continue to work end-to-end.
+
+Commit 04: Add auth rate limiting and brute-force defenses
+Status: DONE
+Estimated effort: 5-7 hours
+Files:
+- backend/src/main/java/com/sentra/backend/runtime/HttpServerApp.java
+Changes:
+- Add per-IP and per-identity rate limits for register/login/refresh.
+- Return 429 with stable error payload.
+- Add security logs for repeated failures.
+Acceptance criteria:
+- Burst attacks are throttled predictably.
+- Normal login flows remain unaffected.
+
+Commit 05: Harden upload and avatar validation surfaces
+Status: DONE
+Estimated effort: 4-6 hours
+Files:
+- backend/src/main/java/com/sentra/backend/encryption/EncryptionApiModule.java
+- backend/src/main/java/com/sentra/backend/auth/AuthIdentityModule.java
+Changes:
+- Enforce strict filename sanitization and MIME/content checks.
+- Replace avatar data-URL storage with safer stored reference pattern.
+- Return explicit 400/413/415 responses for invalid payloads.
+Acceptance criteria:
+- Invalid content and dangerous filenames rejected.
+- Avatar storage no longer persists raw data URLs.
+
+Commit 06: Replace custom parsing in security-critical paths
+Status: DONE
+Estimated effort: 6-10 hours
+Files:
+- backend/src/main/java/com/sentra/backend/runtime/JsonUtil.java
+- backend/src/main/java/com/sentra/crypto/utils/FileHelper.java
+- backend/src/main/java/com/sentra/backend/auth/AuthIdentityModule.java
+- backend/build.gradle
+Changes:
+- Introduce standard JSON and JWT libraries.
+- Migrate auth and request parsing off custom parser implementations.
+- Preserve API contract while removing duplicate parser logic.
+Acceptance criteria:
+- Token verification and JSON parsing use vetted libraries.
+- Auth flows pass integration checks.
+
+====================================================================
+PHASE 2: RELIABILITY
+====================================================================
+
+Commit 07: Add safe parsing and strict bounds to inputs
+Status: DONE
+Estimated effort: 3-4 hours
+Files:
+- backend/src/main/java/com/sentra/backend/runtime/HttpServerApp.java
+- backend/src/main/java/com/sentra/backend/files/FileLifecycleModule.java
+Changes:
+- Safe integer parsing for query/body numbers.
+- Clamp pagination (page/per_page) and validate ranges.
+- Return 400 for invalid parameters instead of generic 500.
+Acceptance criteria:
+- Invalid numeric input never crashes handlers.
+- Pagination abuse is bounded.
+
+Commit 08: Standardize error mapping and observability
+Status: DONE
+Estimated effort: 4-6 hours
+Files:
+- backend/src/main/java/com/sentra/backend/runtime/HttpServerApp.java
+- backend/src/main/java/com/sentra/crypto/utils/FileHelper.java
+Changes:
+- Add consistent 4xx/5xx mapping and error schema.
+- Remove silent catch blocks where diagnostics are needed.
+- Add context-rich logs for operational debugging.
+Acceptance criteria:
+- API returns consistent structured errors.
+- Exceptions produce actionable logs.
+
+Commit 09: Index and query performance hardening
+Status: DONE
+Estimated effort: 3-5 hours
+Files:
+- backend/src/main/java/com/sentra/backend/files/FileLifecycleModule.java
+- backend/README.md
+Changes:
+- Add/create Mongo indexes for inbox/outbox and auth lookups.
+- Reduce expensive regex fallback query behavior where possible.
+- Document required indexes for deployment.
+Acceptance criteria:
+- Query latency improves on realistic dataset.
+- Index setup is documented and reproducible.
+
+Commit 10: Container/runtime deployment hardening
+Status: DONE
+Estimated effort: 2-4 hours
+Files:
+- backend/Dockerfile
+- render.yaml
+Changes:
+- Run container as non-root user.
+- Add container healthcheck.
+- Confirm host/port runtime expectations for Render.
+Acceptance criteria:
+- Container exposes health state correctly.
+- Runtime follows least-privilege model.
+
+Commit 11: Add release CI quality gates
+Status: DONE
+Estimated effort: 2-3 hours
+Files:
+- .github/workflows/release.yml
+Changes:
+- Add frontend lint/typecheck/build and backend build/test before release publish.
+- Block release artifacts when checks fail.
+Acceptance criteria:
+- Broken code cannot be published as release artifact.
+
+====================================================================
+PHASE 3: CLEANUP
+====================================================================
+
+Commit 12: Remove unused dependencies and dead code signals
+Status: DONE
+Estimated effort: 1-2 hours
+Files:
+- frontend/package.json
+- package.json
+- backend files flagged by compiler as unused
+Changes:
+- Remove unused packages (including route/routing packages not used).
+- Remove dead imports/fields detected by compiler/linter.
+Acceptance criteria:
+- Dependency graph is reduced.
+- No new unused warnings in touched files.
+
+Commit 13: Remove production debug noise and deduplicate UI logic
+Status: DONE
+Estimated effort: 2-3 hours
+Files:
+- frontend/src/App.tsx
+- frontend/src/views/Encrypt.tsx
+- frontend/src/api/client.ts
+Changes:
+- Gate debug logs behind development mode or remove them.
+- Deduplicate blocked route arrays and repeated logic.
+Acceptance criteria:
+- Production console output is clean.
+- Duplicate logic removed from App navigation flow.
+
+Commit 14: Archive/artifact hygiene for deployment
+Status: DONE
+Estimated effort: 2-4 hours
+Files:
+- .gitignore
+- _archive/*
+- backend/logs/*
+- backend/data/*
+Changes:
+- Remove or isolate archive-only content from production release branch.
+- Ensure runtime logs/data artifacts are not tracked (except placeholders).
+Acceptance criteria:
+- Deployment branch excludes stale legacy/runtime artifacts.
+- Repo size and noise reduced.
+
+Commit 15: Documentation and final release checklist
+Status: DONE
+Estimated effort: 2-3 hours
+Files:
+- README.md
+- backend/README.md
+- frontend/README.md
+- fixesNeeded
+Changes:
+- Update docs to current stack and deployment path.
+- Convert ad-hoc TODO notes into explicit release checklist items.
+Acceptance criteria:
+- Docs match actual architecture and release flow.
+- Final release checklist is complete and auditable.
+
+====================================================================
+TOTAL EFFORT
+====================================================================
+- Security phase: 29-44 hours
+- Reliability phase: 14-22 hours
+- Cleanup phase: 7-12 hours
+- Total: 50-78 engineering hours
+
+Execution Notes
+- Do not batch multiple commits into one PR commit.
+- Keep each commit independently revertible.
+- After each commit, run relevant tests and smoke checks.
+- Prioritize rollback safety for commits 01-06.
+
+Done Definition (for entire PR series)
+- No credential leaks in repository.
+- Cookie-based auth in place (no token storage in web storage).
+- Auth endpoints rate-limited.
+- Input parsing and pagination hardened.
+- CI release gates enforced.
+- Docker/runtime hardened.
+- Dead code and stale dependencies reduced.

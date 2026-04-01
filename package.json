@@ -1,0 +1,45 @@
+{
+  "name": "sentra-root",
+  "version": "1.0.0",
+  "main": "main.js",
+  "description": "Root package for Sentra Hybrid Crypto File Encryption",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "lint": "cd frontend && npm run lint",
+    "electron": "cd frontend && npm run electron",
+    "electron-dev": "cd frontend && npm run electron-dev",
+    "electron:dev": "electron .",
+    "electron:build": "electron-builder",
+    "build-electron": "cd frontend && npm run build-electron",
+    "build-electron-win": "cd frontend && npm run build-electron-win",
+    "build-electron-mac": "cd frontend && npm run build-electron-mac",
+    "build-electron-linux": "cd frontend && npm run build-electron-linux"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.student.sentra",
+    "productName": "Sentra",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "frontend/dist/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": true
+    }
+  }
+}

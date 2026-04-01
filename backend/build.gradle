@@ -1,0 +1,37 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+group = 'com.sentra'
+version = 'dev'
+
+def mainClassNameValue = 'com.sentra.backend.Main'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.mongodb:mongodb-driver-sync:4.11.2'
+    implementation 'org.mongodb:bson:4.11.2'
+    implementation 'org.mindrot:jbcrypt:0.4'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+}
+
+application {
+    mainClass = mainClassNameValue
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': mainClassNameValue
+    }
+}
+
+shadowJar {
+    archiveBaseName.set('sentra-backend-dev')
+    archiveClassifier.set('')
+    archiveVersion.set('')
+}

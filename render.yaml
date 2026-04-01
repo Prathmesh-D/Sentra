@@ -1,0 +1,66 @@
+services:
+  - type: web
+    name: sentra-api
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB_NAME
+        value: sentra_encryption
+      - key: MONGO_COLLECTION_USERS
+        value: users
+      - key: MONGO_COLLECTION_FILES
+        value: encrypted_files
+      - key: MONGO_COLLECTION_RECIPIENTS
+        value: recipients
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: BCRYPT_ROUNDS
+        value: 12
+      - key: TOKEN_EXPIRY_HOURS
+        value: 24
+      - key: REFRESH_TOKEN_EXPIRY_DAYS
+        value: 30
+      - key: MAX_FILE_SIZE
+        value: 104857600
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_FILE
+        value: /app/backend/logs/app.log
+      - key: BACKEND_BASE_DIR
+        value: /app/backend
+      - key: DATA_DIR
+        value: /app/backend/data
+      - key: CLIENT_URL
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://sentra.onrender.com
+
+  - type: web
+    name: sentra
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build:web
+    publishDir: dist
+    plan: free
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_WEB
+        value: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
