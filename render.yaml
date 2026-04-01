@@ -53,7 +53,7 @@ services:
     runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build:web
-    publishDir: dist
+    publishDir: frontend/dist
     plan: free
     envVars:
       - key: VITE_API_URL
