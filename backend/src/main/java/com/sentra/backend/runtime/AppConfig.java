@@ -53,7 +53,7 @@ public class AppConfig {
         this.SECRET_KEY = (secret == null || secret.isBlank()) ? UUID.randomUUID().toString() : secret;
         this.JWT_SECRET_KEY = (jwtSecret == null || jwtSecret.isBlank()) ? UUID.randomUUID().toString() : jwtSecret;
         this.HOST = envOrDefault(env, "HOST", "0.0.0.0");
-        this.PORT = Integer.parseInt(envOrDefault(env, "PORT", "3000"));
+        this.PORT = Integer.parseInt(envOrDefault(env, "PORT", "10000"));
 
         this.MONGO_URI = env.get("MONGO_URI");
         if (IS_PRODUCTION && (MONGO_URI == null || MONGO_URI.isBlank())) {
@@ -81,11 +81,26 @@ public class AppConfig {
         this.TOKEN_EXPIRY_HOURS = Integer.parseInt(envOrDefault(env, "TOKEN_EXPIRY_HOURS", "24"));
         this.REFRESH_TOKEN_EXPIRY_DAYS = Integer.parseInt(envOrDefault(env, "REFRESH_TOKEN_EXPIRY_DAYS", "30"));
 
-        String cors = envOrDefault(env, "CLIENT_URL", envOrDefault(env, "CORS_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:3000"));
-        if (IS_PRODUCTION && (cors == null || cors.isBlank())) {
+        String clientUrl = env.get("CLIENT_URL");
+        String corsOrigins = env.get("CORS_ORIGINS");
+        if (IS_PRODUCTION
+            && (clientUrl == null || clientUrl.isBlank())
+            && (corsOrigins == null || corsOrigins.isBlank())) {
             throw new IllegalStateException("CORS_ORIGINS is required in production");
         }
-        this.CORS_ORIGINS = Arrays.asList(cors.split(","));
+        LinkedHashSet<String> originSet = new LinkedHashSet<>();
+        if (clientUrl != null && !clientUrl.isBlank()) {
+            originSet.add(clientUrl.trim());
+        }
+        if (corsOrigins != null && !corsOrigins.isBlank()) {
+            for (String origin : corsOrigins.split(",")) {
+                String trimmed = origin.trim();
+                if (!trimmed.isEmpty()) {
+                    originSet.add(trimmed);
+                }
+            }
+        }
+        this.CORS_ORIGINS = new ArrayList<>(originSet);
 
         this.LOG_LEVEL = envOrDefault(env, "LOG_LEVEL", "INFO");
         this.LOG_FILE = Path.of(envOrDefault(env, "LOG_FILE", "./logs/app.log"));
@@ -94,7 +109,10 @@ public class AppConfig {
     public static AppConfig load() {
         Map<String, String> env = new HashMap<>(System.getenv());
         Path baseDir = resolveBaseDir(env);
-        env.putAll(loadDotEnv(baseDir.resolve(".env")));
+        Map<String, String> dotEnv = loadDotEnv(baseDir.resolve(".env"));
+        for (Map.Entry<String, String> entry : dotEnv.entrySet()) {
+            env.putIfAbsent(entry.getKey(), entry.getValue());
+        }
         return new AppConfig(env, baseDir);
     }
 

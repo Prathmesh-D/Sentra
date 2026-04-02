@@ -115,9 +115,7 @@ public class HttpServerApp {
 
                 if ("/api/health".equals(path)) {
                     Map<String, Object> body = new LinkedHashMap<>();
-                    body.put("status", "healthy");
-                    body.put("service", "Sentra Encryption API");
-                    body.put("version", "1.0.0");
+                    body.put("status", "ok");
                     sendResponse(exchange, 200, JsonUtil.stringify(body));
                     return;
                 }

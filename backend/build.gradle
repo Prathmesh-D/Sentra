@@ -31,7 +31,5 @@ jar {
 }
 
 shadowJar {
-    archiveBaseName.set('sentra-backend-dev')
-    archiveClassifier.set('')
-    archiveVersion.set('')
+    archiveFileName.set('sentra-backend.jar')
 }

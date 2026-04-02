@@ -12,7 +12,7 @@ WORKDIR /app
 RUN apk add --no-cache wget \
 		&& addgroup -S sentra \
 		&& adduser -S sentra -G sentra
-COPY --from=build /app/build/libs/sentra-backend-dev.jar sentra-backend.jar
+COPY --from=build /app/build/libs/sentra-backend.jar sentra-backend.jar
 
 # Render provides PORT via env; bind to 0.0.0.0 so the container is reachable
 ENV HOST=0.0.0.0
