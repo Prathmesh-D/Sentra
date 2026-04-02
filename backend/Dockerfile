@@ -3,7 +3,6 @@ FROM gradle:8.7-jdk21 AS build
 WORKDIR /app
 COPY build.gradle settings.gradle ./
 COPY src/ src/
-COPY lib/ lib/
 RUN gradle shadowJar --no-daemon
 
 # Stage 2: Run
