@@ -16,7 +16,7 @@ COPY --from=build /app/build/libs/sentra-backend-dev.jar sentra-backend.jar
 
 # Render provides PORT via env; bind to 0.0.0.0 so the container is reachable
 ENV HOST=0.0.0.0
-ENV PORT=5000
+ENV PORT=10000
 ENV APP_ENV=production
 
 RUN chown -R sentra:sentra /app
@@ -25,5 +25,5 @@ USER sentra
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 	CMD wget -qO- "http://127.0.0.1:${PORT}/api/health" > /dev/null || exit 1
 
-EXPOSE 5000
+EXPOSE 10000
 CMD ["java", "-jar", "sentra-backend.jar"]
