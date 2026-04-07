@@ -2,7 +2,6 @@ services:
   - type: web
     name: sentra-api
     runtime: docker
-    plan: free
     dockerfilePath: backend/Dockerfile
     dockerContext: backend
     healthCheckPath: /api/health
@@ -49,7 +48,6 @@ services:
   - type: web
     name: sentra
     runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build:web
     staticPublishPath: dist
