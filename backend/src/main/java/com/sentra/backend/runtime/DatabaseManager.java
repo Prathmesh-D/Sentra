@@ -43,7 +43,12 @@ public class DatabaseManager {
                 ready = true;
                 return true;
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            String detail = e.getClass().getSimpleName();
+            if (e.getMessage() != null && !e.getMessage().isBlank()) {
+                detail += ": " + e.getMessage();
+            }
+            Log.warn("DB", "checkReady", "failed; " + detail);
         }
         return false;
     }

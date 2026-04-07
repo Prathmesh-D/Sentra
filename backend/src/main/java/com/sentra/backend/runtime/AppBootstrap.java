@@ -38,7 +38,11 @@ public class AppBootstrap {
                     Log.warn("DB", "config", "MONGO_URI missing; database disabled");
                 }
             } catch (Exception e) {
-                Log.warn("DB", "connect", "failed");
+                String detail = e.getClass().getSimpleName();
+                if (e.getMessage() != null && !e.getMessage().isBlank()) {
+                    detail += ": " + e.getMessage();
+                }
+                Log.warn("DB", "connect", "failed; " + detail);
             }
 
             // 5) Crypto service init
@@ -71,7 +75,7 @@ public class AppBootstrap {
                 config.CORS_ORIGINS,
                 dbManager::checkReady
             );
-            Log.info("HTTP", "start", "url=http://" + config.HOST + ":" + config.PORT + " env=development");
+            Log.info("HTTP", "start", "url=http://" + config.HOST + ":" + config.PORT + " env=" + config.APP_ENV);
 
             app.start();
 

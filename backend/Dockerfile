@@ -5,7 +5,8 @@ COPY build.gradle settings.gradle ./
 COPY src/ src/
 RUN gradle shadowJar --no-daemon
 
-# Stage 2: Run - v2FROM eclipse-temurin:21-jre-alpine
+# Stage 2: Run - v2
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN apk add --no-cache wget \
 		&& addgroup -S sentra \

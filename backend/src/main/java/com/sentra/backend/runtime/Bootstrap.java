@@ -51,7 +51,11 @@ public class Bootstrap {
                 Log.error("DB", "config", "MONGO_URI missing; backend not ready");
             }
         } catch (Exception e) {
-            Log.error("DB", "connect", "failed");
+            String detail = e.getClass().getSimpleName();
+            if (e.getMessage() != null && !e.getMessage().isBlank()) {
+                detail += ": " + e.getMessage();
+            }
+            Log.error("DB", "connect", "failed; " + detail);
         }
 
         // 6) Initialize Crypto Service Adapter
@@ -91,7 +95,7 @@ public class Bootstrap {
         );
 
         // 8) Start HTTP server
-        Log.info("HTTP", "start", "url=http://" + config.HOST + ":" + config.PORT + " env=development");
+        Log.info("HTTP", "start", "url=http://" + config.HOST + ":" + config.PORT + " env=" + config.APP_ENV);
 
         serverApp.start();
 

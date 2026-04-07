@@ -1,18 +1,16 @@
 services:
   - type: web
     name: sentra-api
-    runtime: docker
-    dockerfilePath: backend/Dockerfile
-    dockerContext: backend
-    plan: free
+    runtime: java
+    rootDir: backend
+    buildCommand: ./gradlew clean shadowJar --no-daemon
+    startCommand: java -jar build/libs/sentra-backend.jar
     healthCheckPath: /api/health
     envVars:
       - key: APP_ENV
         value: production
       - key: HOST
         value: 0.0.0.0
-      - key: PORT
-        value: 10000
       - key: MONGO_URI
         sync: false
       - key: MONGO_DB_NAME
@@ -38,11 +36,11 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: LOG_FILE
-        value: /app/backend/logs/app.log
+        value: /opt/render/project/src/backend/logs/app.log
       - key: BACKEND_BASE_DIR
-        value: /app/backend
+        value: /opt/render/project/src/backend
       - key: DATA_DIR
-        value: /app/backend/data
+        value: /opt/render/project/src/backend/data
       - key: CLIENT_URL
         sync: false
       - key: CORS_ORIGINS
@@ -51,9 +49,9 @@ services:
   - type: web
     name: sentra
     runtime: static
-    buildCommand: cd frontend && npm install && npm run build:web
-    staticPublishPath: frontend/dist
-    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build:web
+    staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
         sync: false

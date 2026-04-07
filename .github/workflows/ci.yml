@@ -20,9 +20,9 @@ jobs:
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v3
       - name: Compile backend
-        run: gradle classes --no-daemon
+        run: bash ./gradlew classes --no-daemon
       - name: Backend tests
-        run: gradle test --no-daemon
+        run: bash ./gradlew test --no-daemon
 
   frontend:
     runs-on: ubuntu-latest
