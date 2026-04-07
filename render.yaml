@@ -1,10 +1,9 @@
 services:
   - type: web
     name: sentra-api
-    runtime: java
-    rootDir: backend
-    buildCommand: ./gradlew clean shadowJar --no-daemon
-    startCommand: java -jar build/libs/sentra-backend.jar
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
     healthCheckPath: /api/health
     envVars:
       - key: APP_ENV
@@ -36,11 +35,11 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: LOG_FILE
-        value: /opt/render/project/src/backend/logs/app.log
+        value: /app/backend/logs/app.log
       - key: BACKEND_BASE_DIR
-        value: /opt/render/project/src/backend
+        value: /app/backend
       - key: DATA_DIR
-        value: /opt/render/project/src/backend/data
+        value: /app/backend/data
       - key: CLIENT_URL
         sync: false
       - key: CORS_ORIGINS
