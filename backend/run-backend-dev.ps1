@@ -28,6 +28,27 @@ function Load-EnvFile {
     }
 }
 
+function Assert-PortAvailable {
+    param([int]$Port)
+
+    $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $listener) {
+        return
+    }
+
+    $owner = Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)" -ErrorAction SilentlyContinue
+    $ownerName = if ($owner) { $owner.Name } else { "unknown" }
+    $ownerCmd = if ($owner -and $owner.CommandLine) { $owner.CommandLine } else { "<unavailable>" }
+
+    throw @"
+Port $Port is already in use by PID $($listener.OwningProcess) ($ownerName).
+Command line: $ownerCmd
+
+Stop the existing process first, then rerun this script.
+Example: Stop-Process -Id $($listener.OwningProcess) -Force
+"@
+}
+
 Assert-CommandAvailable "java"
 
 $backendRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -45,6 +66,8 @@ if (-not $env:PORT) { $env:PORT = "5000" }
 if (-not $env:BACKEND_BASE_DIR) { $env:BACKEND_BASE_DIR = $backendRoot }
 if (-not $env:DATA_DIR) { $env:DATA_DIR = Join-Path $backendRoot "data" }
 if (-not $env:LOG_FILE) { $env:LOG_FILE = Join-Path $backendRoot "logs\app.log" }
+
+Assert-PortAvailable -Port ([int]$env:PORT)
 
 # Collect Java sources
 $sources = Get-ChildItem -Path $srcDir -Recurse -Filter *.java | ForEach-Object { $_.FullName }

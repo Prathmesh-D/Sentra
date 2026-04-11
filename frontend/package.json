@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:desktop": "cross-env VITE_WEB=false tsc -b && cross-env VITE_WEB=false vite build",
     "build:web": "cross-env VITE_WEB=true tsc -b && cross-env VITE_WEB=true vite build",
     "lint": "eslint .",
     "preview": "vite preview",

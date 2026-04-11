@@ -7,7 +7,7 @@ import renderer from 'vite-plugin-electron-renderer'
 
 // https://vite.dev/config/
 // Web mode: set VITE_WEB=true to skip Electron plugins (used by Render static site build)
-const isWebMode = !!process.env.VITE_WEB;
+const isWebMode = process.env.VITE_WEB === 'true';
 const useElectron = !isWebMode && !process.env.ELECTRON_MANUAL_DEV;
 
 export default defineConfig({

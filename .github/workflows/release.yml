@@ -25,16 +25,16 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build frontend
+      - name: Build frontend (desktop)
         working-directory: frontend
-        run: npm run build:web
+        run: npm run build:desktop
         env:
-          VITE_API_URL: ${{ secrets.PRODUCTION_API_URL }}
-          VITE_WEB: true
+          VITE_API_URL: ${{ secrets.PRODUCTION_API_URL != '' && secrets.PRODUCTION_API_URL || 'https://sentra-api-test.onrender.com/api' }}
 
       - name: Build Windows installer
         run: npm run electron:build
         env:
+          VITE_API_URL: ${{ secrets.PRODUCTION_API_URL != '' && secrets.PRODUCTION_API_URL || 'https://sentra-api-test.onrender.com/api' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload exe artifact

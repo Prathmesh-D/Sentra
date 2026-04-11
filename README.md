@@ -1,95 +1,86 @@
-# Sentra
+# Sentra Monorepo
 
-Hybrid-crypto file sharing with a Java backend, a React web app, and a Windows desktop build.
+Sentra is a full-stack secure file-sharing platform with a Java backend, React frontend, and Electron desktop app in one repository.
 
-[![Release](https://img.shields.io/github/v/release/Prathmesh-D/Sentra)](https://github.com/Prathmesh-D/Sentra/releases/latest)
-[![CI](https://img.shields.io/github/actions/workflow/status/Prathmesh-D/Sentra/ci.yml)](https://github.com/Prathmesh-D/Sentra/actions)
+## Repository Layout
 
----
+- [frontend](frontend) - React + Vite UI and Electron renderer
+- [backend](backend) - Java API service (auth, files, encryption, recipients, users)
+- [render.yaml](render.yaml) - Render deployment blueprint
+- [supp_docs](supp_docs) - operational and deployment documentation
+- [frontend/README.md](frontend/README.md) - frontend-specific setup
+- [backend/README.md](backend/README.md) - backend-specific setup
 
-## Try It
+## Quick Start (Local)
 
-**Web:** https://sentra.onrender.com
+Requirements:
 
-**Desktop (Windows):** https://github.com/Prathmesh-D/Sentra/releases/latest
-Download the .exe, run it, and the app installs. No setup needed.
+- Node.js 18+
+- Java 21+
+- MongoDB Atlas or local MongoDB
 
----
+From repository root:
 
-## Features
+```powershell
+copy .env.example .env
+cd backend
+./run-backend-dev.ps1
+```
 
-- File encryption and secure downloads
-- User authentication and profile settings
-- Inbox, outbox, and recipient management
-- Electron desktop packaging for Windows
-- Render deployment for the web app and API
+In a second terminal:
 
----
+```powershell
+cd frontend
+npm install
+npm run dev
+```
 
-## Run Locally
+Frontend default dev URL: http://localhost:5173
 
-Requirements: Node.js 18+, Java 21+, MongoDB
+## Desktop Build
 
-git clone https://github.com/Prathmesh-D/Sentra.git
-cd Sentra
+From repository root:
 
-Copy .env.example to .env and fill in your values.
+```powershell
+npm install
+npm run electron:build
+```
 
-Install and run:
-cd backend && ./run-backend-dev.ps1
-cd frontend && npm install && npm run dev
+Installer output:
 
----
+- `release/Sentra-Setup-<version>.exe`
 
-## Environment Variables
+## Deployment
 
-See .env.example for the full list with descriptions.
+- Backend and web deployment are defined in [render.yaml](render.yaml).
+- CI/CD release workflow is in [.github/workflows/release.yml](.github/workflows/release.yml).
 
-| Variable | Description |
-|----------|-------------|
-| VITE_API_URL | Public API URL used by the frontend and packaged Electron app |
-| VITE_WEB | Enables the Vite web build path for Render static hosting |
-| APP_ENV | Backend environment mode |
-| HOST | Backend bind address |
-| PORT | Backend port |
-| CLIENT_URL | Public frontend URL allowed to call the backend |
-| MONGO_URI | MongoDB connection string |
-| MONGO_DB_NAME | MongoDB database name |
-| MONGO_COLLECTION_USERS | MongoDB users collection |
-| MONGO_COLLECTION_FILES | MongoDB files collection |
-| MONGO_COLLECTION_RECIPIENTS | MongoDB recipients collection |
-| JWT_SECRET_KEY | JWT signing secret |
-| SECRET_KEY | App secret used by backend auth routines |
-| BCRYPT_ROUNDS | Password hashing rounds |
-| TOKEN_EXPIRY_HOURS | Access token lifetime in hours |
-| REFRESH_TOKEN_EXPIRY_DAYS | Refresh token lifetime in days |
-| MAX_FILE_SIZE | Maximum upload size in bytes |
-| LOG_LEVEL | Backend log level |
-| LOG_FILE | Backend log file path |
-| BACKEND_BASE_DIR | Backend base directory used by the desktop shell |
-| DATA_DIR | Backend data directory used by the desktop shell |
-| CORS_ORIGINS | Optional CORS allow-list fallback for local development |
+## Backup and Restore Workflow
 
----
+To ensure you can recover even if local files are deleted:
 
-## Deploy Your Own
+1. Keep all work committed to git.
+2. Push all branches and tags to a private GitHub repository.
+3. Restore anytime by cloning the private repository and checking out your working branch.
 
-1. Fork this repo
-2. Create a Web Service on render.com and connect the repo
-3. Add your environment variables in the Render dashboard
-4. Push to main - Render deploys automatically
+Example restore commands:
 
----
+```powershell
+git clone <private-repo-url>
+cd <repo-folder>
+git checkout cloud-migration
+```
 
-## Release a New Version
+## Core Environment Variables
 
-git tag v1.0.1
-git push origin main --tags
+See [.env.example](.env.example) for the full list. Important keys:
 
-GitHub Actions builds the .exe and publishes a release automatically.
-
----
-
-## Built By
-
-Prathmesh D - https://github.com/Prathmesh-D
+- `VITE_API_URL`
+- `APP_ENV`
+- `HOST`
+- `PORT`
+- `MONGO_URI`
+- `MONGO_DB_NAME`
+- `JWT_SECRET_KEY`
+- `SECRET_KEY`
+- `CORS_ORIGINS`

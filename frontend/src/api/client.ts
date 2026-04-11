@@ -6,7 +6,56 @@ import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_OVERRIDE_STORAGE_KEY = 'sentra_api_url_override';
+const localDesktopApiBase = 'http://127.0.0.1:5000/api';
+
+const normalizeApiBase = (value?: string | null): string | null => {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (!/^https?:$/i.test(parsed.protocol)) {
+      return null;
+    }
+    return trimmed.replace(/\/+$/, '');
+  } catch {
+    return null;
+  }
+};
+
+const readApiOverride = (): string | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  return normalizeApiBase(window.localStorage.getItem(API_OVERRIDE_STORAGE_KEY));
+};
+
+const configuredApiBase = normalizeApiBase(import.meta.env.VITE_API_URL);
+const overrideApiBase = readApiOverride();
+const useFallbackApiBase = !configuredApiBase || /placeholder\.invalid/i.test(configuredApiBase);
+const API_BASE_URL = (overrideApiBase ?? (useFallbackApiBase ? localDesktopApiBase : configuredApiBase)).replace(/\/+$/, '');
+
+export const getApiBaseUrl = (): string => API_BASE_URL;
+
+export const setApiBaseUrlOverride = (nextBaseUrl: string): string => {
+  const normalized = normalizeApiBase(nextBaseUrl);
+  if (!normalized) {
+    throw new Error('Please enter a valid http(s) backend URL.');
+  }
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(API_OVERRIDE_STORAGE_KEY, normalized);
+  }
+  return normalized;
+};
+
+export const clearApiBaseUrlOverride = (): void => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(API_OVERRIDE_STORAGE_KEY);
+  }
+};
 
 let inMemoryAccessToken: string | null = null;
 let inMemoryRefreshToken: string | null = null;
@@ -132,6 +181,11 @@ apiClient.interceptors.response.use(
     if (error.response) {
       // Server responded with error
       const message = error.response.data?.error || error.response.data?.message || 'An error occurred';
+
+      if (error.response.status === 404 && isAuthRequest) {
+        toast.error(`Auth endpoint not found at ${API_BASE_URL}. Update Backend URL in Connection Settings.`);
+        return Promise.reject(error);
+      }
       
       // Don't show toast for certain errors (let components handle them)
       if (error.response.status !== 401 && error.response.status !== 404) {
