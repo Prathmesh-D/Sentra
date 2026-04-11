@@ -1,86 +1,36 @@
-# Sentra Monorepo
+# Sentra
 
-Sentra is a full-stack secure file-sharing platform with a Java backend, React frontend, and Electron desktop app in one repository.
+Sentra helps you encrypt, share, and manage files securely across web and desktop.
 
-## Repository Layout
+## Use Sentra
 
-- [frontend](frontend) - React + Vite UI and Electron renderer
-- [backend](backend) - Java API service (auth, files, encryption, recipients, users)
-- [render.yaml](render.yaml) - Render deployment blueprint
-- [supp_docs](supp_docs) - operational and deployment documentation
-- [frontend/README.md](frontend/README.md) - frontend-specific setup
-- [backend/README.md](backend/README.md) - backend-specific setup
+1. Open the live web app: https://sentra.onrender.com
+2. Or download Windows app: https://github.com/Prathmesh-D/Sentra/releases/latest
+3. Sign in, then encrypt files and share securely.
 
-## Quick Start (Local)
+## Live Links
 
-Requirements:
+1. Web app: https://sentra.onrender.com
+2. API base: https://sentra-api-test.onrender.com/api
+3. API health: https://sentra-api-test.onrender.com/api/health
+4. API readiness: https://sentra-api-test.onrender.com/api/ready
 
-- Node.js 18+
-- Java 21+
-- MongoDB Atlas or local MongoDB
+## Download Releases
 
-From repository root:
+1. Latest release: https://github.com/Prathmesh-D/Sentra/releases/latest
+2. All releases: https://github.com/Prathmesh-D/Sentra/releases
 
-```powershell
-copy .env.example .env
-cd backend
-./run-backend-dev.ps1
-```
+## What You Can Do
 
-In a second terminal:
+1. Protect files with hybrid encryption.
+2. Share with recipients securely.
+3. Manage inbox, outbox, profile, and sessions.
+4. Use web app or desktop installer.
 
-```powershell
-cd frontend
-npm install
-npm run dev
-```
+## For Developers
 
-Frontend default dev URL: http://localhost:5173
+If you are setting this up locally, start with:
 
-## Desktop Build
-
-From repository root:
-
-```powershell
-npm install
-npm run electron:build
-```
-
-Installer output:
-
-- `release/Sentra-Setup-<version>.exe`
-
-## Deployment
-
-- Backend and web deployment are defined in [render.yaml](render.yaml).
-- CI/CD release workflow is in [.github/workflows/release.yml](.github/workflows/release.yml).
-
-## Backup and Restore Workflow
-
-To ensure you can recover even if local files are deleted:
-
-1. Keep all work committed to git.
-2. Push all branches and tags to a private GitHub repository.
-3. Restore anytime by cloning the private repository and checking out your working branch.
-
-Example restore commands:
-
-```powershell
-git clone <private-repo-url>
-cd <repo-folder>
-git checkout cloud-migration
-```
-
-## Core Environment Variables
-
-See [.env.example](.env.example) for the full list. Important keys:
-
-- `VITE_API_URL`
-- `APP_ENV`
-- `HOST`
-- `PORT`
-- `MONGO_URI`
-- `MONGO_DB_NAME`
-- `JWT_SECRET_KEY`
-- `SECRET_KEY`
-- `CORS_ORIGINS`
+1. backend/README.md
+2. frontend/README.md
+3. .env.example
