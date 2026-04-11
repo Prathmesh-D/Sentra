@@ -424,6 +424,76 @@ public class CryptoServiceAdapter {
         return keys;
     }
 
+    public boolean ensureUserKeys(String username) {
+        ensureInitialized();
+        if (username == null) {
+            return false;
+        }
+        String normalized = username.trim();
+        if (normalized.isEmpty()) {
+            return false;
+        }
+        return engine.generateOrLoadKeys("user_" + normalized, false);
+    }
+
+    public String rewrapKeyForRecipient(String sourceUsername, String sourceWrappedKeyHex, String recipientUsername) {
+        ensureInitialized();
+        try {
+            if (sourceUsername == null || recipientUsername == null || sourceWrappedKeyHex == null) {
+                return null;
+            }
+
+            String source = sourceUsername.trim();
+            String recipient = recipientUsername.trim();
+            if (source.isEmpty() || recipient.isEmpty() || sourceWrappedKeyHex.isBlank()) {
+                return null;
+            }
+
+            String sourceKeyName = "user_" + source;
+            String recipientKeyName = "user_" + recipient;
+
+            if (!engine.generateOrLoadKeys(sourceKeyName, false)) {
+                Log.warn("DECRYPT", "rewrap", "source_key_unavailable user=" + source);
+                return null;
+            }
+            if (!engine.generateOrLoadKeys(recipientKeyName, false)) {
+                Log.warn("DECRYPT", "rewrap", "recipient_key_unavailable user=" + recipient);
+                return null;
+            }
+
+            Path sourcePrivateKeyPath = enginePrivateKeyPath(sourceKeyName);
+            Path recipientPublicKeyPath = engineKeysDir().resolve(recipientKeyName + "_public.pem");
+            if (!Files.exists(sourcePrivateKeyPath) || !Files.exists(recipientPublicKeyPath)) {
+                Log.warn("DECRYPT", "rewrap", "key_file_missing source=" + source + " recipient=" + recipient);
+                return null;
+            }
+
+            byte[] wrappedKeyBytes = hexToBytes(sourceWrappedKeyHex);
+            byte[] aesKey = RSAUtils.decryptAesKeyWithRsa(
+                wrappedKeyBytes,
+                RSAUtils.loadPrivateKeyFromFile(sourcePrivateKeyPath)
+            );
+            if (aesKey == null) {
+                Log.warn("DECRYPT", "rewrap", "source_unwrap_failed source=" + source + " recipient=" + recipient);
+                return null;
+            }
+
+            byte[] rewrapped = RSAUtils.encryptAesKeyWithRsa(
+                aesKey,
+                RSAUtils.loadPublicKeyFromFile(recipientPublicKeyPath)
+            );
+            if (rewrapped == null) {
+                Log.warn("DECRYPT", "rewrap", "recipient_wrap_failed source=" + source + " recipient=" + recipient);
+                return null;
+            }
+
+            return bytesToHex(rewrapped);
+        } catch (Exception e) {
+            Log.warn("DECRYPT", "rewrap", "failed source=" + sourceUsername + " recipient=" + recipientUsername + " error=" + e.getMessage());
+            return null;
+        }
+    }
+
     /**
      * [PRESERVED]
      */

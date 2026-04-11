@@ -15,7 +15,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -112,10 +115,15 @@ public class EncryptionApiModule {
                 return new Response(400, mapOf("error", "Recipients are required"));
             }
 
+            List<String> resolvedRecipients = normalizeRecipientsAndEnsureKeys(recipients, username);
+            if (resolvedRecipients.isEmpty()) {
+                return new Response(400, mapOf("error", "Recipients are required"));
+            }
+
             String resolvedMode = normalizeProcessingMode(processingMode);
             String tag = resolveTag(resolvedMode, manualTag, file.filename);
             int resolvedExpiryDays = resolveExpiryDays(resolvedMode, expiryDays, file.filename);
-            boolean resolvedSelfDestruct = resolveSelfDestruct(resolvedMode, selfDestruct, recipients);
+            boolean resolvedSelfDestruct = resolveSelfDestruct(resolvedMode, selfDestruct, resolvedRecipients);
 
             if (file.content.length > maxFileSize) {
                 return new Response(413, mapOf("error", "File too large"));
@@ -154,7 +162,7 @@ public class EncryptionApiModule {
                 file.content,
                 originalFilename,
                 username,
-                recipients != null ? recipients : new ArrayList<>(),
+                resolvedRecipients,
                 encType,
                 expiry,
                 resolvedSelfDestruct,
@@ -202,8 +210,8 @@ public class EncryptionApiModule {
                 filesCollection.insertOne(doc);
                 fileId = id.toString();
 
-                if (recipients != null) {
-                    for (String recipient : recipients) {
+                if (resolvedRecipients != null) {
+                    for (String recipient : resolvedRecipients) {
                         try {
                             Document userDoc = db.getCollection("users").find(new Document("username", recipient)).first();
                             if (userDoc != null) {
@@ -227,7 +235,7 @@ public class EncryptionApiModule {
                 }
 
                 logActivity(username, "encrypted", fileId, originalFilename, null, true, null, mapOf(
-                    "recipients", recipients,
+                    "recipients", resolvedRecipients,
                     "encryption_type", encType,
                     "file_size", file.content.length
                 ));
@@ -246,7 +254,7 @@ public class EncryptionApiModule {
                     + " metadata_ms=" + metadataMs
                     + " total_ms=" + totalMs
                     + " size_bytes=" + file.content.length
-                    + " recipients=" + (recipients != null ? recipients.size() : 0)
+                    + " recipients=" + resolvedRecipients.size()
             );
 
             Object expiresAt = metadata.get("expires_at");
@@ -258,7 +266,7 @@ public class EncryptionApiModule {
                 "file_id", fileId,
                 "filename", originalFilename,
                 "encrypted_filename", metadata.get("encrypted_filename"),
-                "recipients", recipients != null ? recipients : new ArrayList<>(),
+                "recipients", resolvedRecipients,
                 "encryption_type", encType,
                 "expires_at", expiresAtStr
             ));
@@ -356,19 +364,11 @@ public class EncryptionApiModule {
             }
 
             stage = "wrapped_key";
-            String userWrappedKey = null;
-            Object wrappedKeysObj = fileMetadata.get("wrapped_keys");
-            if (wrappedKeysObj instanceof Document) {
-                Document wrappedKeys = (Document) wrappedKeysObj;
-                Object wk = wrappedKeys.get(username);
-                if (wk != null) {
-                    userWrappedKey = String.valueOf(wk);
-                }
-            } else if (wrappedKeysObj instanceof Map) {
-                Object wk = ((Map<?, ?>) wrappedKeysObj).get(username);
-                if (wk != null) {
-                    userWrappedKey = String.valueOf(wk);
-                }
+            Map<String, String> wrappedKeys = extractWrappedKeys(fileMetadata.get("wrapped_keys"));
+            String userWrappedKey = findWrappedKeyForIdentity(wrappedKeys, username);
+
+            if (userWrappedKey == null) {
+                userWrappedKey = recoverWrappedKeyFromSender(fileMetadata, wrappedKeys, username, fileId, objectId, filesCollection);
             }
 
             if (userWrappedKey == null) {
@@ -618,6 +618,186 @@ public class EncryptionApiModule {
             return contentType.equals("application/zip") || contentType.equals("application/x-zip-compressed") || contentType.equals("application/octet-stream");
         }
         return true;
+    }
+
+    private List<String> normalizeRecipientsAndEnsureKeys(List<String> recipients, String senderUsername) {
+        List<String> resolved = new ArrayList<>();
+        if (recipients == null || recipients.isEmpty()) {
+            return resolved;
+        }
+
+        Set<String> seen = new HashSet<>();
+        MongoCollection<Document> usersCollection = db != null ? db.getCollection("users") : null;
+
+        for (String rawRecipient : recipients) {
+            String candidate = rawRecipient != null ? rawRecipient.trim() : "";
+            if (candidate.isEmpty()) {
+                continue;
+            }
+
+            String resolvedRecipient = resolveRecipientUsername(usersCollection, candidate);
+            String dedupeKey = normalizeIdentity(resolvedRecipient);
+            if (!seen.add(dedupeKey)) {
+                continue;
+            }
+
+            resolved.add(resolvedRecipient);
+
+            if (usersCollection != null) {
+                Document userDoc = usersCollection.find(Filters.eq("username", resolvedRecipient)).first();
+                if (userDoc != null) {
+                    boolean keysReady = cryptoService.ensureUserKeys(resolvedRecipient);
+                    if (!keysReady) {
+                        Log.warn("ENCRYPT", "recipient_keys", "failed sender=" + senderUsername + " recipient=" + resolvedRecipient);
+                    }
+                } else {
+                    Log.warn("ENCRYPT", "recipient_not_found", "sender=" + senderUsername + " recipient=" + candidate);
+                }
+            }
+        }
+
+        return resolved;
+    }
+
+    private String resolveRecipientUsername(MongoCollection<Document> usersCollection, String recipient) {
+        if (recipient == null) {
+            return "";
+        }
+
+        String trimmed = recipient.trim();
+        if (trimmed.isEmpty() || usersCollection == null) {
+            return trimmed;
+        }
+
+        Document userDoc = usersCollection.find(Filters.eq("username", trimmed)).first();
+        if (userDoc == null) {
+            String lowered = trimmed.toLowerCase(Locale.ROOT);
+            if (!lowered.equals(trimmed)) {
+                userDoc = usersCollection.find(Filters.eq("username", lowered)).first();
+            }
+        }
+        if (userDoc == null && trimmed.contains("@")) {
+            String loweredEmail = trimmed.toLowerCase(Locale.ROOT);
+            userDoc = usersCollection.find(Filters.eq("email", loweredEmail)).first();
+        }
+
+        String canonicalUsername = userDoc != null ? asNonBlank(userDoc.get("username")) : null;
+        return canonicalUsername != null ? canonicalUsername : trimmed;
+    }
+
+    private Map<String, String> extractWrappedKeys(Object wrappedKeysObj) {
+        Map<String, String> wrappedKeys = new LinkedHashMap<>();
+
+        if (wrappedKeysObj instanceof Document) {
+            Document wrappedDoc = (Document) wrappedKeysObj;
+            for (Map.Entry<String, Object> entry : wrappedDoc.entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null) {
+                    continue;
+                }
+                String value = String.valueOf(entry.getValue());
+                if (!value.isBlank()) {
+                    wrappedKeys.put(entry.getKey(), value);
+                }
+            }
+            return wrappedKeys;
+        }
+
+        if (wrappedKeysObj instanceof Map) {
+            Map<?, ?> wrappedMap = (Map<?, ?>) wrappedKeysObj;
+            for (Map.Entry<?, ?> entry : wrappedMap.entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null) {
+                    continue;
+                }
+                String key = String.valueOf(entry.getKey());
+                String value = String.valueOf(entry.getValue());
+                if (!key.isBlank() && !value.isBlank()) {
+                    wrappedKeys.put(key, value);
+                }
+            }
+        }
+
+        return wrappedKeys;
+    }
+
+    private String findWrappedKeyForIdentity(Map<String, String> wrappedKeys, String identity) {
+        if (wrappedKeys == null || wrappedKeys.isEmpty() || identity == null) {
+            return null;
+        }
+
+        String trimmed = identity.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        String direct = wrappedKeys.get(trimmed);
+        if (direct != null && !direct.isBlank()) {
+            return direct;
+        }
+
+        String normalizedIdentity = normalizeIdentity(trimmed);
+        for (Map.Entry<String, String> entry : wrappedKeys.entrySet()) {
+            if (normalizedIdentity.equals(normalizeIdentity(entry.getKey()))) {
+                String value = entry.getValue();
+                if (value != null && !value.isBlank()) {
+                    return value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private String recoverWrappedKeyFromSender(Document fileMetadata,
+                                               Map<String, String> wrappedKeys,
+                                               String username,
+                                               String fileId,
+                                               ObjectId objectId,
+                                               MongoCollection<Document> filesCollection) {
+        String sender = asNonBlank(fileMetadata.get("sender"));
+        if (sender == null) {
+            return null;
+        }
+
+        String senderWrappedKey = findWrappedKeyForIdentity(wrappedKeys, sender);
+        if (senderWrappedKey == null) {
+            return null;
+        }
+
+        String recoveredWrappedKey = cryptoService.rewrapKeyForRecipient(sender, senderWrappedKey, username);
+        if (recoveredWrappedKey == null || recoveredWrappedKey.isBlank()) {
+            return null;
+        }
+
+        Map<String, Object> persistedWrappedKeys = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : wrappedKeys.entrySet()) {
+            persistedWrappedKeys.put(entry.getKey(), entry.getValue());
+        }
+        persistedWrappedKeys.put(username, recoveredWrappedKey);
+
+        try {
+            filesCollection.updateOne(
+                Filters.eq("_id", objectId),
+                new Document("$set", new Document("wrapped_keys", new Document(persistedWrappedKeys))
+                    .append("updated_at", new Date()))
+            );
+        } catch (Exception e) {
+            Log.warn("DECRYPT", "wrapped_key_recover_persist_failed", "fileId=" + fileId + " user=" + username + " error=" + e.getMessage());
+        }
+
+        Log.info("DECRYPT", "wrapped_key_recovered", "fileId=" + fileId + " user=" + username + " sender=" + sender);
+        return recoveredWrappedKey;
+    }
+
+    private static String normalizeIdentity(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static String asNonBlank(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
     }
 
     private void addContact(String ownerUsername, String contactUsername, String contactEmail, String contactFullName) {
