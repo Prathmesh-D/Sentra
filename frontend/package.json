@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Hybrid Crypto File Encryption Desktop App",
-  "repository": "https://github.com/Prathmesh-D/Sentra",
+  "repository": "https://github.com/Prathmesh-D/SentraPrivate.git",
   "main": "dist-electron/main.js",
   "homepage": "./",
   "type": "module",
@@ -92,7 +92,7 @@
       {
         "provider": "github",
         "owner": "Prathmesh-D",
-        "repo": "Sentra"
+        "repo": "SentraPrivate"
       }
     ],
     "mac": {
