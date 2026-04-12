@@ -670,7 +670,6 @@ function AccountTab({
         username,
         bio,
         isPublic,
-        avatarUrl: nextAvatarUrl || undefined,
       })
       const returnedUser = response?.user || response
       syncUserEverywhere(returnedUser)

@@ -109,8 +109,12 @@
     },
     "nsis": {
       "oneClick": false,
-      "perMachine": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Sentra",
+      "uninstallDisplayName": "Sentra",
       "deleteAppDataOnUninstall": false,
       "installerIcon": "build/SentraApp.ico",
       "uninstallerIcon": "build/SentraApp.ico",

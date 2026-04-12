@@ -30,6 +30,8 @@ public class AuthIdentityModule {
     private static final Pattern PASSWORD_UPPER = Pattern.compile(".*[A-Z].*");
     private static final Pattern PASSWORD_NUMBER = Pattern.compile(".*\\d.*");
     private static final Pattern PASSWORD_SPECIAL = Pattern.compile(".*[^A-Za-z0-9].*");
+    private static final int MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+    private static final Set<String> ALLOWED_AVATAR_MIME = Set.of("image/jpeg", "image/jpg", "image/png", "image/webp");
 
     private final MongoDatabase db;
     private final String jwtSecret;
@@ -52,6 +54,28 @@ public class AuthIdentityModule {
         public Response(int statusCode, Map<String, Object> body) {
             this.statusCode = statusCode;
             this.body = body;
+        }
+    }
+
+    private static class AvatarValidationResult {
+        public final boolean success;
+        public final int statusCode;
+        public final String errorMessage;
+        public final String avatarDataUrl;
+
+        private AvatarValidationResult(boolean success, int statusCode, String errorMessage, String avatarDataUrl) {
+            this.success = success;
+            this.statusCode = statusCode;
+            this.errorMessage = errorMessage;
+            this.avatarDataUrl = avatarDataUrl;
+        }
+
+        static AvatarValidationResult ok(String avatarDataUrl) {
+            return new AvatarValidationResult(true, 200, null, avatarDataUrl);
+        }
+
+        static AvatarValidationResult fail(int statusCode, String errorMessage) {
+            return new AvatarValidationResult(false, statusCode, errorMessage, null);
         }
     }
 
@@ -152,6 +176,9 @@ public class AuthIdentityModule {
                     fullName = String.valueOf(fn);
                 }
             }
+            String avatarUrl = getProfileAvatarUrl(user);
+            String bio = getProfileBio(user);
+            boolean isPublic = isProfilePublic(user);
 
             return new Response(200, mapOf(
                 "access_token", accessToken,
@@ -159,7 +186,10 @@ public class AuthIdentityModule {
                 "user", mapOf(
                     "username", user.get("username"),
                     "email", user.get("email"),
-                    "full_name", fullName
+                    "full_name", fullName,
+                    "bio", bio,
+                    "avatar_url", avatarUrl,
+                    "is_public", isPublic
                 )
             ));
 
@@ -227,13 +257,21 @@ public class AuthIdentityModule {
 
             Object createdAt = user.get("created_at");
             Object lastLogin = user.get("last_login");
+            Object passwordChangedAt = user.get("lastPasswordChangedAt") != null ? user.get("lastPasswordChangedAt") : user.get("password_changed_at");
+            String avatarUrl = getProfileAvatarUrl(user);
+            String bio = getProfileBio(user);
+            boolean isPublic = isProfilePublic(user);
 
             return new Response(200, mapOf(
                 "username", user.get("username"),
                 "email", user.get("email"),
                 "full_name", getProfileFullName(user, username),
+                "bio", bio,
+                "avatar_url", avatarUrl,
+                "is_public", isPublic,
                 "created_at", toIsoOrNull(createdAt),
-                "last_login", toIsoOrNull(lastLogin)
+                "last_login", toIsoOrNull(lastLogin),
+                "password_changed_at", toIsoOrNull(passwordChangedAt)
             ));
 
         } catch (Exception e) {
@@ -564,13 +602,22 @@ public class AuthIdentityModule {
                 }
             }
             if (avatar != null && !avatar.isEmpty()) {
-                try {
-                    URI parsed = URI.create(avatar);
-                    if (parsed.getScheme() == null || (!"http".equalsIgnoreCase(parsed.getScheme()) && !"https".equalsIgnoreCase(parsed.getScheme()))) {
-                        validationErrors.put("avatarUrl", "avatarUrl must be a valid http/https URL or null.");
+                if (avatar.startsWith("data:")) {
+                    AvatarValidationResult avatarValidation = validateAndNormalizeAvatarDataUrl(avatar);
+                    if (!avatarValidation.success) {
+                        validationErrors.put("avatarUrl", avatarValidation.errorMessage);
+                    } else {
+                        avatar = avatarValidation.avatarDataUrl;
                     }
-                } catch (Exception ex) {
-                    validationErrors.put("avatarUrl", "avatarUrl must be a valid http/https URL or null.");
+                } else {
+                    try {
+                        URI parsed = URI.create(avatar);
+                        if (parsed.getScheme() == null || (!"http".equalsIgnoreCase(parsed.getScheme()) && !"https".equalsIgnoreCase(parsed.getScheme()))) {
+                            validationErrors.put("avatarUrl", "avatarUrl must be a valid http/https URL, data URL, or null.");
+                        }
+                    } catch (Exception ex) {
+                        validationErrors.put("avatarUrl", "avatarUrl must be a valid http/https URL, data URL, or null.");
+                    }
                 }
             }
 
@@ -817,54 +864,35 @@ public class AuthIdentityModule {
 
             String avatarBase64 = String.valueOf(data.get("avatarBase64")).trim();
             String mimeType = String.valueOf(data.getOrDefault("mimeType", "")).toLowerCase(Locale.ROOT).trim();
-            Set<String> allowedMime = new HashSet<>(Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/webp"));
-
-            String pureBase64 = avatarBase64;
-            if (avatarBase64.startsWith("data:")) {
-                int idx = avatarBase64.indexOf(',');
-                if (idx > 0) {
-                    int semiIdx = avatarBase64.indexOf(';');
-                    if ((mimeType == null || mimeType.isBlank()) && semiIdx > 5 && semiIdx < idx) {
-                        mimeType = avatarBase64.substring(5, semiIdx).toLowerCase(Locale.ROOT).trim();
-                    }
-                    pureBase64 = avatarBase64.substring(idx + 1);
+            String avatarCandidate = avatarBase64;
+            if (!avatarCandidate.startsWith("data:")) {
+                if (mimeType == null || mimeType.isBlank()) {
+                    return new Response(400, mapOf("errors", mapOf("avatar", "Avatar mime type is required.")));
                 }
+                avatarCandidate = "data:" + mimeType + ";base64," + avatarBase64;
             }
 
-            if (!allowedMime.contains(mimeType)) {
-                return new Response(415, mapOf("errors", mapOf("avatar", "Only JPG, PNG, and WEBP are supported.")));
+            AvatarValidationResult avatarValidation = validateAndNormalizeAvatarDataUrl(avatarCandidate);
+            if (!avatarValidation.success) {
+                return new Response(avatarValidation.statusCode, mapOf("errors", mapOf("avatar", avatarValidation.errorMessage)));
             }
 
-            byte[] decoded;
-            try {
-                decoded = Base64.getDecoder().decode(pureBase64);
-            } catch (Exception decodeEx) {
-                return new Response(400, mapOf("errors", mapOf("avatar", "Invalid avatar image data.")));
-            }
+            String normalizedAvatarDataUrl = avatarValidation.avatarDataUrl;
 
-            if (decoded.length > 2 * 1024 * 1024) {
-                return new Response(413, mapOf("errors", mapOf("avatar", "Avatar must be 2MB or smaller.")));
-            }
-
-            String detectedMime = detectImageMime(decoded);
-            if (!allowedMime.contains(detectedMime) || !isAvatarMimeCompatible(mimeType, detectedMime)) {
-                return new Response(415, mapOf("errors", mapOf("avatar", "Avatar media type does not match image data.")));
-            }
-
-            String avatarHash = sha256Hex(pureBase64 + ":" + mimeType + ":" + username);
+            String avatarHash = sha256Hex(normalizedAvatarDataUrl + ":" + username);
             String avatarRef = "avatar_ref:" + avatarHash;
             getUsersCollection().updateOne(
                 Filters.eq("username", username),
                 new Document("$set", new Document()
-                    .append("avatarUrl", null)
-                    .append("profile.avatar_url", null)
+                    .append("avatarUrl", normalizedAvatarDataUrl)
+                    .append("profile.avatar_url", normalizedAvatarDataUrl)
                     .append("avatarRef", avatarRef)
                     .append("profile.avatar_ref", avatarRef)
                     .append("updated_at", new Date())
                     .append("updatedAt", new Date())
                 )
             );
-            return new Response(200, mapOf("success", true, "avatarRef", avatarRef));
+            return new Response(200, mapOf("success", true, "avatarRef", avatarRef, "avatarUrl", normalizedAvatarDataUrl));
         } catch (Exception e) {
             return new Response(500, mapOf("error", "Failed to upload avatar"));
         }
@@ -877,6 +905,8 @@ public class AuthIdentityModule {
                 new Document("$set", new Document()
                     .append("avatarUrl", null)
                     .append("profile.avatar_url", null)
+                    .append("avatarRef", null)
+                    .append("profile.avatar_ref", null)
                     .append("updated_at", new Date())
                     .append("updatedAt", new Date())
                 )
@@ -1466,6 +1496,62 @@ public class AuthIdentityModule {
         return fallback;
     }
 
+    private static String getProfileBio(Document user) {
+        if (user == null) {
+            return "";
+        }
+        if (user.get("bio") != null) {
+            return String.valueOf(user.get("bio"));
+        }
+        Object profileObj = user.get("profile");
+        if (profileObj instanceof Document) {
+            Object bio = ((Document) profileObj).get("bio");
+            if (bio != null) {
+                return String.valueOf(bio);
+            }
+        }
+        return "";
+    }
+
+    private static String getProfileAvatarUrl(Document user) {
+        if (user == null) {
+            return null;
+        }
+        Object topLevelAvatar = user.get("avatarUrl");
+        if (topLevelAvatar != null) {
+            String value = String.valueOf(topLevelAvatar).trim();
+            if (!value.isEmpty()) {
+                return value;
+            }
+        }
+        Object profileObj = user.get("profile");
+        if (profileObj instanceof Document) {
+            Object profileAvatar = ((Document) profileObj).get("avatar_url");
+            if (profileAvatar != null) {
+                String value = String.valueOf(profileAvatar).trim();
+                if (!value.isEmpty()) {
+                    return value;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean isProfilePublic(Document user) {
+        if (user == null) {
+            return false;
+        }
+        Object topLevelPublic = user.get("isPublic");
+        if (topLevelPublic instanceof Boolean) {
+            return (Boolean) topLevelPublic;
+        }
+        Object profileObj = user.get("profile");
+        if (profileObj instanceof Document) {
+            return Boolean.TRUE.equals(((Document) profileObj).getOrDefault("is_public", false));
+        }
+        return false;
+    }
+
     private static Object toIsoOrNull(Object value) {
         if (value == null) {
             return null;
@@ -1535,6 +1621,54 @@ public class AuthIdentityModule {
             return "image/webp";
         }
         return "unknown";
+    }
+
+    private static AvatarValidationResult validateAndNormalizeAvatarDataUrl(String avatarDataUrl) {
+        if (avatarDataUrl == null || avatarDataUrl.isBlank()) {
+            return AvatarValidationResult.fail(400, "Avatar image payload is required.");
+        }
+
+        String raw = avatarDataUrl.trim();
+        if (!raw.startsWith("data:")) {
+            return AvatarValidationResult.fail(400, "Avatar must be provided as a valid data URL.");
+        }
+
+        int commaIdx = raw.indexOf(',');
+        int semiIdx = raw.indexOf(';');
+        if (commaIdx <= 5 || semiIdx <= 5 || semiIdx > commaIdx) {
+            return AvatarValidationResult.fail(400, "Invalid avatar image data.");
+        }
+
+        String mimeType = raw.substring(5, semiIdx).toLowerCase(Locale.ROOT).trim();
+        String encoding = raw.substring(semiIdx + 1, commaIdx).toLowerCase(Locale.ROOT).trim();
+        if (!"base64".equals(encoding)) {
+            return AvatarValidationResult.fail(400, "Avatar data URL must use base64 encoding.");
+        }
+
+        if (!ALLOWED_AVATAR_MIME.contains(mimeType)) {
+            return AvatarValidationResult.fail(415, "Only JPG, PNG, and WEBP are supported.");
+        }
+
+        String pureBase64 = raw.substring(commaIdx + 1).trim();
+        byte[] decoded;
+        try {
+            decoded = Base64.getDecoder().decode(pureBase64);
+        } catch (Exception decodeEx) {
+            return AvatarValidationResult.fail(400, "Invalid avatar image data.");
+        }
+
+        if (decoded.length > MAX_AVATAR_BYTES) {
+            return AvatarValidationResult.fail(413, "Avatar must be 2MB or smaller.");
+        }
+
+        String detectedMime = detectImageMime(decoded);
+        if (!ALLOWED_AVATAR_MIME.contains(detectedMime) || !isAvatarMimeCompatible(mimeType, detectedMime)) {
+            return AvatarValidationResult.fail(415, "Avatar media type does not match image data.");
+        }
+
+        String normalizedBase64 = Base64.getEncoder().encodeToString(decoded);
+        String normalizedDataUrl = "data:" + detectedMime + ";base64," + normalizedBase64;
+        return AvatarValidationResult.ok(normalizedDataUrl);
     }
 
     private static boolean isAvatarMimeCompatible(String requestedMime, String detectedMime) {

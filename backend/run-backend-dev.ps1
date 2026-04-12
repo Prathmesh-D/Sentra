@@ -99,17 +99,40 @@ function Ensure-DependencyJars {
     }
 }
 
+function Resolve-BuiltJarPath {
+    param([string]$BuildDir)
+
+    $libsDir = Join-Path $BuildDir "libs"
+    $preferred = @(
+        (Join-Path $libsDir "sentra-backend.jar"),
+        (Join-Path $libsDir "sentra-backend-dev.jar")
+    )
+
+    foreach ($candidate in $preferred) {
+        if (Test-Path $candidate) {
+            return $candidate
+        }
+    }
+
+    $latestJar = Get-ChildItem -Path $libsDir -Filter *.jar -File -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+
+    if ($latestJar) {
+        return $latestJar.FullName
+    }
+
+    throw "Build succeeded but no jar found under $libsDir"
+}
+
 $gradleWrapper = Join-Path $backendRoot "gradlew.bat"
 if (Test-Path $gradleWrapper) {
     Write-Host "[JAVA] Building backend with Gradle wrapper..."
     & $gradleWrapper shadowJar --no-daemon
 
-    $jarOut = Join-Path $buildDir "libs\sentra-backend-dev.jar"
-    if (-not (Test-Path $jarOut)) {
-        throw "Build succeeded but jar not found at $jarOut"
-    }
+    $jarOut = Resolve-BuiltJarPath -BuildDir $buildDir
 
-    Write-Host "[JAVA] Starting backend..."
+    Write-Host "[JAVA] Starting backend from $jarOut..."
     & java -jar $jarOut
     return
 }
@@ -118,12 +141,9 @@ if (Get-Command gradle -ErrorAction SilentlyContinue) {
     Write-Host "[JAVA] Building backend with Gradle..."
     & gradle shadowJar --no-daemon
 
-    $jarOut = Join-Path $buildDir "libs\sentra-backend-dev.jar"
-    if (-not (Test-Path $jarOut)) {
-        throw "Build succeeded but jar not found at $jarOut"
-    }
+    $jarOut = Resolve-BuiltJarPath -BuildDir $buildDir
 
-    Write-Host "[JAVA] Starting backend..."
+    Write-Host "[JAVA] Starting backend from $jarOut..."
     & java -jar $jarOut
     return
 }
