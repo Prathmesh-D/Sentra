@@ -24,6 +24,10 @@ if (!gotLock) {
   app.quit();
 }
 
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.sentra.crypto');
+}
+
 function broadcastAuthClear() {
   for (const win of BrowserWindow.getAllWindows()) {
     try {
@@ -285,7 +289,7 @@ function createWindow() {
       enableRemoteModule: false,
       preload: path.join(__dirname, 'preload.js')
     },
-    icon: process.platform === 'win32' ? path.join(__dirname, '../build/SentraApp.ico') : path.join(__dirname, '../build/icon-256.png'),
+    icon: process.platform === 'win32' ? path.join(__dirname, '../build/SentraApp.ico') : path.join(__dirname, '../build/favicon-256.png'),
     show: false, // Don't show until ready
     titleBarStyle: 'default',
     autoHideMenuBar: true,

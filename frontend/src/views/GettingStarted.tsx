@@ -38,7 +38,7 @@ export default function GettingStartedPage() {
       {/* Hero Section */}
       <div className={`text-center max-w-3xl mx-auto ${!hasAnimated ? 'animate-in fade-in slide-in-from-top-4 duration-700' : ''}`}>
         <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-[#084d45] via-[#0a6b5e] to-[#084d45] bg-clip-text text-transparent">
-          Welcome to Sentra! 🎉
+          Welcome to Sentra!
         </h1>
         <p className="text-lg text-gray-700 leading-relaxed font-medium">
           Your personal, secure space where sharing files is both simple and safe. 

@@ -166,6 +166,9 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.sentra.crypto')
+  }
   startBackendServer()
   createWindow()
 })

@@ -111,7 +111,10 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "build/SentraApp.ico",
+      "uninstallerIcon": "build/SentraApp.ico",
+      "installerHeaderIcon": "build/SentraApp.ico"
     }
   }
 }

@@ -22,7 +22,7 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.student.sentra",
+    "appId": "com.sentra.crypto",
     "productName": "Sentra",
     "directories": {
       "output": "release"
@@ -49,7 +49,10 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+      "createDesktopShortcut": true,
+      "installerIcon": "frontend/build/SentraApp.ico",
+      "uninstallerIcon": "frontend/build/SentraApp.ico",
+      "installerHeaderIcon": "frontend/build/SentraApp.ico"
     }
   }
 }
