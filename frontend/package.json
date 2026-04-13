@@ -86,6 +86,10 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "build/SentraApp.ico",
+        "to": "SentraApp.ico"
       }
     ],
     "publish": [
@@ -111,7 +115,7 @@
       "oneClick": false,
       "perMachine": true,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": "always",
+      "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Sentra",
       "uninstallDisplayName": "Sentra",

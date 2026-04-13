@@ -84,14 +84,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const initializeAuth = async () => {
     try {
-      const demoSession = getDemoSession();
-      if (demoSession?.isDemo) {
-        setUser(demoSession.user as User);
-        setIsDemo(true);
-        setAuthStatus('authenticated');
-        return;
-      }
-
       try {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
@@ -101,6 +93,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (apiError) {
         console.error('No active authenticated session:', apiError);
       }
+
+      const demoSession = getDemoSession();
+      if (demoSession?.isDemo) {
+        setUser(demoSession.user as User);
+        setIsDemo(true);
+        setAuthStatus('authenticated');
+        return;
+      }
+
       setUser(null);
       setIsDemo(false);
       setAuthStatus('unauthenticated');

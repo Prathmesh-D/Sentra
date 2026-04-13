@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu } = require('electron')
 const path = require('path')
+const fs = require('fs')
 const { spawn } = require('child_process')
 const http = require('http')
 
@@ -22,6 +23,24 @@ function getBackendExecutablePath() {
     return path.join(process.resourcesPath, 'sentra-backend.exe')
   }
   return path.join(__dirname, 'frontend', 'resources', 'sentra-backend.exe')
+}
+
+function resolveWindowIconPath() {
+  const candidates = app.isPackaged
+    ? [
+        path.join(process.resourcesPath, 'SentraApp.ico'),
+        path.join(process.resourcesPath, 'app.asar.unpacked', 'frontend', 'build', 'SentraApp.ico'),
+        path.join(__dirname, 'frontend', 'build', 'SentraApp.ico'),
+      ]
+    : [path.join(__dirname, 'frontend', 'build', 'SentraApp.ico')]
+
+  for (const iconPath of candidates) {
+    if (fs.existsSync(iconPath)) {
+      return iconPath
+    }
+  }
+
+  return candidates[candidates.length - 1]
 }
 
 function waitForBackendHealth(timeoutMs = 30000, intervalMs = 700) {
@@ -137,11 +156,12 @@ function stopBackendServer() {
 }
 
 function createWindow() {
+  const iconPath = resolveWindowIconPath()
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     autoHideMenuBar: true,
-    icon: path.join(__dirname, 'frontend', 'build', 'SentraApp.ico'),
+    icon: iconPath,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

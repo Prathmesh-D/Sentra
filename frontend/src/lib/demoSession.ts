@@ -15,7 +15,9 @@ export interface DemoSession {
 export function getDemoSession(): DemoSession | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(DEMO_SESSION_KEY);
+    const raw = window.sessionStorage.getItem(DEMO_SESSION_KEY);
+    // Remove stale legacy demo state so app/web do not auto-enter demo mode on cold start.
+    window.localStorage.removeItem(DEMO_SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed?.isDemo) return null;
@@ -27,7 +29,8 @@ export function getDemoSession(): DemoSession | null {
 
 export function setDemoSession(session: DemoSession): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
+  window.sessionStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
+  window.localStorage.removeItem(DEMO_SESSION_KEY);
 }
 
 export function updateDemoSession(updater: (current: DemoSession) => DemoSession): DemoSession | null {
@@ -40,7 +43,8 @@ export function updateDemoSession(updater: (current: DemoSession) => DemoSession
 
 export function clearDemoSessionStorage(): void {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(DEMO_SESSION_KEY);
+  window.sessionStorage.removeItem(DEMO_SESSION_KEY);
+  window.localStorage.removeItem(DEMO_SESSION_KEY);
 }
 
 export function createAndStoreDemoSession(): DemoSession {

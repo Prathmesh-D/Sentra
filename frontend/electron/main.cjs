@@ -28,6 +28,24 @@ if (process.platform === 'win32') {
   app.setAppUserModelId('com.sentra.crypto');
 }
 
+function resolveWindowIconPath() {
+  const candidates = app.isPackaged
+    ? [
+        path.join(process.resourcesPath, 'SentraApp.ico'),
+        path.join(process.resourcesPath, 'app.asar.unpacked', 'build', 'SentraApp.ico'),
+        path.join(__dirname, '../build/SentraApp.ico'),
+      ]
+    : [path.join(__dirname, '../build/SentraApp.ico')];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return candidates[candidates.length - 1];
+}
+
 function broadcastAuthClear() {
   for (const win of BrowserWindow.getAllWindows()) {
     try {
@@ -277,6 +295,10 @@ function createWindow() {
     mainWindow.focus();
     return;
   }
+  const iconPath = process.platform === 'win32'
+    ? resolveWindowIconPath()
+    : path.join(__dirname, '../build/favicon-256.png');
+
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -289,7 +311,7 @@ function createWindow() {
       enableRemoteModule: false,
       preload: path.join(__dirname, 'preload.js')
     },
-    icon: process.platform === 'win32' ? path.join(__dirname, '../build/SentraApp.ico') : path.join(__dirname, '../build/favicon-256.png'),
+    icon: iconPath,
     show: false, // Don't show until ready
     titleBarStyle: 'default',
     autoHideMenuBar: true,

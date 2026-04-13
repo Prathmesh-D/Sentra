@@ -31,6 +31,10 @@
       {
         "from": "frontend/resources/sentra-backend.exe",
         "to": "sentra-backend.exe"
+      },
+      {
+        "from": "frontend/build/SentraApp.ico",
+        "to": "SentraApp.ico"
       }
     ],
     "files": [
@@ -49,7 +53,7 @@
       "oneClick": false,
       "perMachine": true,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": "always",
+      "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Sentra",
       "uninstallDisplayName": "Sentra",

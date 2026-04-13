@@ -632,8 +632,11 @@ public class AuthIdentityModule {
                 }
             }
 
-            Document setDoc = new Document("updated_at", new Date())
-                .append("updatedAt", new Date())
+            Date now = new Date();
+            boolean usernameChanged = !username.equals(requestedUsername);
+
+            Document setDoc = new Document("updated_at", now)
+                .append("updatedAt", now)
                 .append("name", fullName)
                 .append("bio", bio)
                 .append("isPublic", isPublic)
@@ -648,6 +651,10 @@ public class AuthIdentityModule {
             }
 
             getUsersCollection().updateOne(Filters.eq("username", username), new Document("$set", setDoc));
+            if (usernameChanged) {
+                migrateUsernameReferences(username, requestedUsername, now);
+            }
+
             Response profileResponse = getUserProfile(requestedUsername);
             if (profileResponse.statusCode != 200) {
                 return profileResponse;
@@ -658,6 +665,188 @@ public class AuthIdentityModule {
         } catch (Exception e) {
             return new Response(500, mapOf("error", "Failed to update profile"));
         }
+    }
+
+    private void migrateUsernameReferences(String oldUsername, String newUsername, Date now) {
+        String oldNormalized = normalizeIdentityForComparison(oldUsername);
+        String newNormalized = normalizeIdentityForComparison(newUsername);
+        if (oldNormalized.isEmpty() || newNormalized.isEmpty() || oldNormalized.equals(newNormalized)) {
+            return;
+        }
+
+        migrateEncryptedFileIdentities(oldUsername, newUsername, now);
+
+        db.getCollection("contacts").updateMany(
+            Filters.eq("owner_username", oldUsername),
+            new Document("$set", new Document("owner_username", newUsername).append("updated_at", now))
+        );
+
+        db.getCollection("contacts").updateMany(
+            Filters.eq("contact_username", oldUsername),
+            new Document("$set", new Document("contact_username", newUsername).append("updated_at", now))
+        );
+
+        db.getCollection("notifications").updateMany(
+            Filters.eq("username", oldUsername),
+            new Document("$set", new Document("username", newUsername).append("updated_at", now))
+        );
+
+        db.getCollection("notifications").updateMany(
+            Filters.eq("from_user", oldUsername),
+            new Document("$set", new Document("from_user", newUsername).append("updated_at", now))
+        );
+
+        db.getCollection("activity_logs").updateMany(
+            Filters.eq("username", oldUsername),
+            new Document("$set", new Document("username", newUsername).append("updated_at", now))
+        );
+
+        db.getCollection("activity_logs").updateMany(
+            Filters.eq("target_user", oldUsername),
+            new Document("$set", new Document("target_user", newUsername).append("updated_at", now))
+        );
+
+        getSessionsCollection().updateMany(
+            Filters.eq("username", oldUsername),
+            new Document("$set", new Document("username", newUsername).append("updated_at", now))
+        );
+
+        db.getCollection("user_statistics").updateMany(
+            Filters.eq("username", oldUsername),
+            new Document("$set", new Document("username", newUsername).append("updated_at", now))
+        );
+    }
+
+    private void migrateEncryptedFileIdentities(String oldUsername, String newUsername, Date now) {
+        MongoCollection<Document> filesCollection = db.getCollection("encrypted_files");
+
+        Document query = new Document("$or", Arrays.asList(
+            new Document("sender", oldUsername),
+            new Document("recipients", oldUsername),
+            new Document("wrapped_keys." + oldUsername, new Document("$exists", true))
+        ));
+
+        for (Document fileDoc : filesCollection.find(query)) {
+            Object id = fileDoc.get("_id");
+            if (id == null) {
+                continue;
+            }
+
+            Document setDoc = new Document("updated_at", now).append("updatedAt", now);
+            boolean changed = false;
+
+            Object sender = fileDoc.get("sender");
+            if (sender != null && normalizeIdentityForComparison(String.valueOf(sender)).equals(normalizeIdentityForComparison(oldUsername))) {
+                setDoc.append("sender", newUsername);
+                changed = true;
+            }
+
+            changed = migrateRecipientsField(fileDoc, oldUsername, newUsername, setDoc) || changed;
+            changed = migrateWrappedKeysField(fileDoc, oldUsername, newUsername, setDoc) || changed;
+
+            if (changed) {
+                filesCollection.updateOne(Filters.eq("_id", id), new Document("$set", setDoc));
+            }
+        }
+    }
+
+    private boolean migrateRecipientsField(Document fileDoc, String oldUsername, String newUsername, Document setDoc) {
+        Object recipientsObj = fileDoc.get("recipients");
+        String oldNormalized = normalizeIdentityForComparison(oldUsername);
+
+        if (recipientsObj instanceof List<?>) {
+            List<Object> updatedRecipients = new ArrayList<>();
+            boolean changed = false;
+
+            for (Object recipient : (List<?>) recipientsObj) {
+                if (recipient == null) {
+                    updatedRecipients.add(null);
+                    continue;
+                }
+                String recipientValue = String.valueOf(recipient);
+                if (normalizeIdentityForComparison(recipientValue).equals(oldNormalized)) {
+                    updatedRecipients.add(newUsername);
+                    changed = true;
+                } else {
+                    updatedRecipients.add(recipient);
+                }
+            }
+
+            if (changed) {
+                setDoc.append("recipients", updatedRecipients);
+            }
+            return changed;
+        }
+
+        if (recipientsObj instanceof String) {
+            String recipientsValue = ((String) recipientsObj).trim();
+            if (normalizeIdentityForComparison(recipientsValue).equals(oldNormalized)) {
+                setDoc.append("recipients", newUsername);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean migrateWrappedKeysField(Document fileDoc, String oldUsername, String newUsername, Document setDoc) {
+        Object wrappedKeysObj = fileDoc.get("wrapped_keys");
+        if (!(wrappedKeysObj instanceof Document) && !(wrappedKeysObj instanceof Map<?, ?>)) {
+            return false;
+        }
+
+        LinkedHashMap<String, Object> sourceKeys = new LinkedHashMap<>();
+        if (wrappedKeysObj instanceof Document) {
+            Document wrappedDoc = (Document) wrappedKeysObj;
+            for (Map.Entry<String, Object> entry : wrappedDoc.entrySet()) {
+                sourceKeys.put(entry.getKey(), entry.getValue());
+            }
+        } else {
+            Map<?, ?> wrappedMap = (Map<?, ?>) wrappedKeysObj;
+            for (Map.Entry<?, ?> entry : wrappedMap.entrySet()) {
+                if (entry.getKey() == null) {
+                    continue;
+                }
+                sourceKeys.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+        }
+
+        if (sourceKeys.isEmpty()) {
+            return false;
+        }
+
+        String oldNormalized = normalizeIdentityForComparison(oldUsername);
+        boolean hadOldKey = false;
+        Object movedValue = null;
+        Document updatedWrappedKeys = new Document();
+
+        for (Map.Entry<String, Object> entry : sourceKeys.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            if (normalizeIdentityForComparison(key).equals(oldNormalized)) {
+                hadOldKey = true;
+                if (movedValue == null && value != null) {
+                    movedValue = value;
+                }
+                continue;
+            }
+            updatedWrappedKeys.append(key, value);
+        }
+
+        if (!hadOldKey) {
+            return false;
+        }
+
+        if (!updatedWrappedKeys.containsKey(newUsername) && movedValue != null) {
+            updatedWrappedKeys.append(newUsername, movedValue);
+        }
+
+        setDoc.append("wrapped_keys", updatedWrappedKeys);
+        return true;
+    }
+
+    private static String normalizeIdentityForComparison(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 
     public Response checkUsernameAvailability(String currentUsername, String candidateUsername) {
