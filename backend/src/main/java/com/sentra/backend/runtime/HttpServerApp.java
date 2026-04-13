@@ -21,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
@@ -108,6 +109,7 @@ public class HttpServerApp {
                     endpoints.put("recipients", "/api/recipients");
                     endpoints.put("users", "/api/users");
                     endpoints.put("health", "/api/health");
+                    endpoints.put("db_ping", "/api/db-ping");
                     body.put("endpoints", endpoints);
                     sendResponse(exchange, 200, JsonUtil.stringify(body));
                     return;
@@ -127,6 +129,17 @@ public class HttpServerApp {
                     body.put("service", "Sentra Encryption API");
                     body.put("version", "1.0.0");
                     sendResponse(exchange, ready ? 200 : 503, JsonUtil.stringify(body));
+                    return;
+                }
+
+                if ("/api/db-ping".equals(path) && "GET".equalsIgnoreCase(method)) {
+                    boolean dbReady = readyCheck.getAsBoolean();
+                    Map<String, Object> body = new LinkedHashMap<>();
+                    body.put("status", dbReady ? "ok" : "error");
+                    body.put("database", dbReady ? "reachable" : "unreachable");
+                    body.put("service", "Sentra Encryption API");
+                    body.put("timestamp", Instant.now().toString());
+                    sendResponse(exchange, dbReady ? 200 : 503, JsonUtil.stringify(body));
                     return;
                 }
 
