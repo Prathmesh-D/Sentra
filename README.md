@@ -5,6 +5,16 @@
 </div>
 </br>
 
+---
+
+<div align="center">
+
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=28&pause=1000&color=F0F0F0&center=true&vCenter=true&width=600&lines=Encrypt.+Share.+Control.;Web+%2B+Desktop.+One+codebase.;Your+files.+Nobody+else's.;Full-stack+encrypted+file+sharing;Java+%7C+React+%7C+Electron;Live+on+Render)](https://git.io/typing-svg)
+
+</div>
+
+---
+
 <div align="center">
 
 <a href="https://github.com/Prathmesh-D/Sentra/releases/latest">
