@@ -18,7 +18,7 @@
 <div align="center">
 
 <a href="https://github.com/Prathmesh-D/Sentra/releases/latest">
-  <img src="https://img.shields.io/github/v/release/Prathmesh-D/Sentra?style=for-the-badge&color=0f0f0f&labelColor=f0f0f0&label=version"/>
+  <img src="https://img.shields.io/badge/version-v1.0.1-0f0f0f?style=for-the-badge&labelColor=f0f0f0"/>
 </a>
 
 <a href="https://sentra-9c4d.onrender.com">
